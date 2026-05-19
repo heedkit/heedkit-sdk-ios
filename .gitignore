@@ -1,0 +1,9 @@
+.build/
+DerivedData/
+.swiftpm/
+Pods/
+xcuserdata/
+*.xcuserstate
+*.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings
+.DS_Store
+Package.resolved
