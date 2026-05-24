@@ -8,7 +8,7 @@ import Security
 /// launches — including app reinstalls on iOS, since Keychain items survive
 /// uninstall by default. Falls back to UserDefaults if Keychain is unavailable.
 enum DeviceId {
-    private static let service = "dev.feedbackhub.sdk"
+    private static let service = "dev.featurekit.sdk"
     private static let account = "device_id"
 
     static func get() -> String {
@@ -60,17 +60,17 @@ enum DeviceId {
 }
 
 
-public enum FeedbackHubError: Error {
+public enum FeatureKitError: Error {
     case notInitialized
     case http(Int, String)
     case decoding(Error)
 }
 
-public final class FeedbackHub {
-    public static let shared = FeedbackHub()
+public final class FeatureKit {
+    public static let shared = FeatureKit()
     private init() {}
 
-    private var apiUrl: URL = URL(string: "https://api.feedbackhub.dev")!
+    private var apiUrl: URL = URL(string: "https://api.featurekit.dev")!
     private var projectKey: String?
     private(set) public var endUserId: String?
     private(set) public var theme: Theme = Theme()
@@ -86,7 +86,7 @@ public final class FeedbackHub {
 
     @discardableResult
     public func initialize(projectKey: String,
-                           apiUrl: String = "https://api.feedbackhub.dev",
+                           apiUrl: String = "https://api.featurekit.dev",
                            user: EndUser = EndUser()) async throws -> Theme {
         self.projectKey = projectKey
         if let u = URL(string: apiUrl) { self.apiUrl = u }
@@ -130,7 +130,7 @@ public final class FeedbackHub {
         kind: FeatureKind? = nil,
         sort: String = "top"
     ) async throws -> [Feature] {
-        guard let eu = endUserId else { throw FeedbackHubError.notInitialized }
+        guard let eu = endUserId else { throw FeatureKitError.notInitialized }
         var q = "?end_user_id=\(eu)&sort=\(sort)"
         if let s = status { q += "&status=\(s)" }
         if let k = kind { q += "&kind=\(k.rawValue)" }
@@ -143,7 +143,7 @@ public final class FeedbackHub {
         tag: String? = nil,
         kind: FeatureKind = .featureRequest
     ) async throws -> Feature {
-        guard let eu = endUserId else { throw FeedbackHubError.notInitialized }
+        guard let eu = endUserId else { throw FeatureKitError.notInitialized }
         return try await request(
             path: "/sdk/features", method: "POST",
             body: [
@@ -157,7 +157,7 @@ public final class FeedbackHub {
     }
 
     public func vote(featureId: String) async throws -> (voted: Bool, count: Int) {
-        guard let eu = endUserId else { throw FeedbackHubError.notInitialized }
+        guard let eu = endUserId else { throw FeatureKitError.notInitialized }
         let r: VoteResult = try await request(
             path: "/sdk/features/\(featureId)/vote", method: "POST",
             body: ["end_user_id": eu]
@@ -170,7 +170,7 @@ public final class FeedbackHub {
     }
 
     public func comment(featureId: String, body: String) async throws -> Comment {
-        guard let eu = endUserId else { throw FeedbackHubError.notInitialized }
+        guard let eu = endUserId else { throw FeatureKitError.notInitialized }
         return try await request(
             path: "/sdk/features/\(featureId)/comments", method: "POST",
             body: ["end_user_id": eu, "body": body]
@@ -181,9 +181,9 @@ public final class FeedbackHub {
 
     private func request<T: Decodable>(path: String, method: String,
                                        body: [String: Any]? = nil) async throws -> T {
-        guard let projectKey = projectKey else { throw FeedbackHubError.notInitialized }
+        guard let projectKey = projectKey else { throw FeatureKitError.notInitialized }
         guard let url = URL(string: apiUrl.absoluteString + path) else {
-            throw FeedbackHubError.http(0, "bad url")
+            throw FeatureKitError.http(0, "bad url")
         }
         var req = URLRequest(url: url)
         req.httpMethod = method
@@ -196,12 +196,12 @@ public final class FeedbackHub {
         let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
         guard (200..<300).contains(code) else {
             let msg = String(data: data, encoding: .utf8) ?? ""
-            throw FeedbackHubError.http(code, msg)
+            throw FeatureKitError.http(code, msg)
         }
         do {
             return try JSONDecoder().decode(T.self, from: data)
         } catch {
-            throw FeedbackHubError.decoding(error)
+            throw FeatureKitError.decoding(error)
         }
     }
 }

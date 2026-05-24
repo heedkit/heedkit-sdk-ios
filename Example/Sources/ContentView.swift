@@ -1,5 +1,5 @@
 import SwiftUI
-import FeedbackHub
+import FeatureKit
 
 struct ContentView: View {
     @State private var feedbackOpen = false
@@ -20,9 +20,9 @@ struct ContentView: View {
                 }
 
                 Section("Quick submit (headless)") {
-                    let kinds = FeedbackHub.shared.enabledKinds.isEmpty
+                    let kinds = FeatureKit.shared.enabledKinds.isEmpty
                         ? FeatureKind.allCases
-                        : FeedbackHub.shared.enabledKinds
+                        : FeatureKit.shared.enabledKinds
                     ForEach(kinds, id: \.self) { k in
                         Button {
                             Task { await quickSubmit(kind: k) }
@@ -70,14 +70,14 @@ struct ContentView: View {
                 }
 
                 Section("Session") {
-                    LabeledContent("Project", value: FeedbackHub.shared.projectName)
-                    LabeledContent("End-user id", value: FeedbackHub.shared.endUserId ?? "—")
+                    LabeledContent("Project", value: FeatureKit.shared.projectName)
+                    LabeledContent("End-user id", value: FeatureKit.shared.endUserId ?? "—")
                         .font(.system(.body, design: .monospaced))
                 }
             }
-            .navigationTitle("Feedback Hub Demo")
+            .navigationTitle("Feature Kit Demo")
             .sheet(isPresented: $feedbackOpen) {
-                FeedbackHubView()
+                FeatureKitView()
             }
         }
     }
@@ -87,7 +87,7 @@ struct ContentView: View {
         errorMessage = nil
         defer { loading = false }
         do {
-            inlineFeatures = try await FeedbackHub.shared.list()
+            inlineFeatures = try await FeatureKit.shared.list()
         } catch {
             errorMessage = "Failed to load: \(error)"
         }
@@ -95,7 +95,7 @@ struct ContentView: View {
 
     private func toggleVote(for feature: Feature) async {
         do {
-            let result = try await FeedbackHub.shared.vote(featureId: feature.id)
+            let result = try await FeatureKit.shared.vote(featureId: feature.id)
             if let i = inlineFeatures.firstIndex(where: { $0.id == feature.id }) {
                 inlineFeatures[i].voted = result.voted
                 inlineFeatures[i].vote_count = result.count
@@ -110,7 +110,7 @@ struct ContentView: View {
         let title = "\(kind.label) from iOS demo"
         let body = "Sent at \(timestamp)"
         do {
-            let f = try await FeedbackHub.shared.submit(
+            let f = try await FeatureKit.shared.submit(
                 title: title,
                 description: body,
                 kind: kind

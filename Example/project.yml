@@ -1,6 +1,6 @@
-name: FeedbackHubDemo
+name: FeatureKitDemo
 options:
-  bundleIdPrefix: dev.feedbackhub.demo
+  bundleIdPrefix: dev.featurekit.demo
   deploymentTarget:
     iOS: "16.0"
   createIntermediateGroups: true
@@ -12,12 +12,12 @@ settings:
     CODE_SIGN_STYLE: Automatic
 
 packages:
-  FeedbackHub:
+  FeatureKit:
     # Path is relative to this project.yml file -> Example/../ = the SDK root.
     path: ../
 
 targets:
-  FeedbackHubDemo:
+  FeatureKitDemo:
     type: application
     platform: iOS
     sources:
@@ -38,9 +38,9 @@ targets:
               NSExceptionAllowsInsecureHTTPLoads: true
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: dev.feedbackhub.demo.FeedbackHubDemo
+        PRODUCT_BUNDLE_IDENTIFIER: dev.featurekit.demo.FeatureKitDemo
         TARGETED_DEVICE_FAMILY: "1,2"
         SUPPORTS_MACCATALYST: NO
     dependencies:
-      - package: FeedbackHub
-        product: FeedbackHub
+      - package: FeatureKit
+        product: FeatureKit

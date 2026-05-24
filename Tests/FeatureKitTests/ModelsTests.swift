@@ -1,5 +1,5 @@
 import XCTest
-@testable import FeedbackHub
+@testable import FeatureKit
 
 final class ModelsTests: XCTestCase {
 

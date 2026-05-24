@@ -1,13 +1,13 @@
-# FeedbackHubDemo
+# FeatureKitDemo
 
-A minimal SwiftUI iOS app that wires up the local `FeedbackHub` Swift package.
+A minimal SwiftUI iOS app that wires up the local `FeatureKit` Swift package.
 Use it to dogfood the iOS SDK end-to-end against your running backend.
 
 ## What it does
 
 - Initializes the SDK against the demo project on app launch (`@main` init in
-  `FeedbackHubDemoApp.swift`).
-- A button presents the built-in `FeedbackHubView` in a sheet — the full
+  `FeatureKitDemoApp.swift`).
+- A button presents the built-in `FeatureKitView` in a sheet — the full
   list/suggest UI from the SDK.
 - A second section exercises the headless API directly: fetch top requests,
   tap to toggle a vote.
@@ -25,8 +25,8 @@ seeded it).
 ```bash
 brew install xcodegen           # one-time
 cd Example
-xcodegen                        # generates FeedbackHubDemo.xcodeproj
-open FeedbackHubDemo.xcodeproj
+xcodegen                        # generates FeatureKitDemo.xcodeproj
+open FeatureKitDemo.xcodeproj
 ```
 
 In Xcode: select an iPhone 15 simulator, hit ⌘R.
@@ -36,7 +36,7 @@ In Xcode: select an iPhone 15 simulator, hit ⌘R.
 If you don't want to install XcodeGen:
 
 1. **Xcode → File → New → Project → iOS → App.**
-   - Product name: `FeedbackHubDemo`
+   - Product name: `FeatureKitDemo`
    - Interface: SwiftUI
    - Language: Swift
    - Save it inside this `Example/` directory.
@@ -46,8 +46,8 @@ If you don't want to install XcodeGen:
    (check "Copy items if needed" off — we want references to these files).
 4. **Add the local SDK as a package dependency:**
    - File → Add Package Dependencies… → Add Local…
-   - Pick the parent directory (`feedback-hub-sdk-ios/`).
-   - Add the `FeedbackHub` product to the demo target.
+   - Pick the parent directory (`featurekit-sdk-ios/`).
+   - Add the `FeatureKit` product to the demo target.
 5. **Allow http://localhost** in `Info.plist`:
    ```xml
    <key>NSAppTransportSecurity</key>
@@ -67,7 +67,7 @@ If you don't want to install XcodeGen:
 
 ## Configure
 
-`Sources/FeedbackHubDemoApp.swift` has a `Config` enum at the bottom:
+`Sources/FeatureKitDemoApp.swift` has a `Config` enum at the bottom:
 
 ```swift
 enum Config {
@@ -83,7 +83,7 @@ enum Config {
 
 ## What to verify
 
-1. App launches → console prints `✅ FeedbackHub initialized for project: Demo App`.
+1. App launches → console prints `✅ FeatureKit initialized for project: Demo App`.
 2. "Open feedback panel" → modal sheet shows the seeded "Dark mode polish",
    "iPad split-view support", … each row tagged with a kind chip (Idea / Bug /
    Feedback) next to the title.

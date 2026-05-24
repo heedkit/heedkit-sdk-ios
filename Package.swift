@@ -2,17 +2,17 @@
 import PackageDescription
 
 let package = Package(
-    name: "FeedbackHub",
+    name: "FeatureKit",
     platforms: [.iOS(.v16), .macOS(.v13)],
     products: [
-        .library(name: "FeedbackHub", targets: ["FeedbackHub"]),
+        .library(name: "FeatureKit", targets: ["FeatureKit"]),
     ],
     targets: [
-        .target(name: "FeedbackHub", path: "Sources/FeedbackHub"),
+        .target(name: "FeatureKit", path: "Sources/FeatureKit"),
         .testTarget(
-            name: "FeedbackHubTests",
-            dependencies: ["FeedbackHub"],
-            path: "Tests/FeedbackHubTests"
+            name: "FeatureKitTests",
+            dependencies: ["FeatureKit"],
+            path: "Tests/FeatureKitTests"
         ),
     ]
 )

@@ -1,12 +1,12 @@
 import SwiftUI
-import FeedbackHub
+import FeatureKit
 
 @main
-struct FeedbackHubDemoApp: App {
+struct FeatureKitDemoApp: App {
     init() {
         Task {
             do {
-                try await FeedbackHub.shared.initialize(
+                try await FeatureKit.shared.initialize(
                     projectKey: Config.projectKey,
                     apiUrl: Config.apiUrl,
                     user: .init(
@@ -15,9 +15,9 @@ struct FeedbackHubDemoApp: App {
                         platform: "ios"
                     )
                 )
-                print("✅ FeedbackHub initialized for project: \(FeedbackHub.shared.projectName)")
+                print("✅ FeatureKit initialized for project: \(FeatureKit.shared.projectName)")
             } catch {
-                print("⚠️ FeedbackHub init failed: \(error)")
+                print("⚠️ FeatureKit init failed: \(error)")
             }
         }
     }
