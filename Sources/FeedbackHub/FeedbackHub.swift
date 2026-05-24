@@ -1,4 +1,64 @@
 import Foundation
+#if canImport(Security)
+import Security
+#endif
+
+/// Persists a stable per-device id in the Keychain so anonymous end-users
+/// (no externalId passed to `initialize`) keep the same EndUser across
+/// launches — including app reinstalls on iOS, since Keychain items survive
+/// uninstall by default. Falls back to UserDefaults if Keychain is unavailable.
+enum DeviceId {
+    private static let service = "dev.feedbackhub.sdk"
+    private static let account = "device_id"
+
+    static func get() -> String {
+        if let existing = readKeychain() ?? UserDefaults.standard.string(forKey: account) {
+            return existing
+        }
+        let fresh = "dev_" + UUID().uuidString.lowercased().replacingOccurrences(of: "-", with: "")
+        if !writeKeychain(fresh) {
+            UserDefaults.standard.set(fresh, forKey: account)
+        }
+        return fresh
+    }
+
+    private static func readKeychain() -> String? {
+        #if canImport(Security)
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+        ]
+        var item: AnyObject?
+        guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
+              let data = item as? Data,
+              let s = String(data: data, encoding: .utf8) else { return nil }
+        return s
+        #else
+        return nil
+        #endif
+    }
+
+    @discardableResult
+    private static func writeKeychain(_ value: String) -> Bool {
+        #if canImport(Security)
+        let data = Data(value.utf8)
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecValueData as String: data,
+        ]
+        SecItemDelete(query as CFDictionary)
+        return SecItemAdd(query as CFDictionary, nil) == errSecSuccess
+        #else
+        return false
+        #endif
+    }
+}
+
 
 public enum FeedbackHubError: Error {
     case notInitialized
@@ -30,10 +90,13 @@ public final class FeedbackHub {
                            user: EndUser = EndUser()) async throws -> Theme {
         self.projectKey = projectKey
         if let u = URL(string: apiUrl) { self.apiUrl = u }
+        // Fall back to the Keychain-persisted device id when no externalId was
+        // passed — keeps the same EndUser across app launches for anonymous users.
+        let effectiveExternalId: Any = user.externalId ?? DeviceId.get()
         let res: InitResult = try await request(
             path: "/sdk/init", method: "POST",
             body: [
-                "external_id": user.externalId ?? NSNull(),
+                "external_id": effectiveExternalId,
                 "email": user.email ?? NSNull(),
                 "name": user.name ?? NSNull(),
                 "avatar_url": user.avatarUrl ?? NSNull(),
