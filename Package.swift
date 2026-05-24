@@ -3,12 +3,16 @@ import PackageDescription
 
 let package = Package(
     name: "FeedbackHub",
-    platforms: [.iOS(.v15), .macOS(.v12)],
+    platforms: [.iOS(.v16), .macOS(.v13)],
     products: [
         .library(name: "FeedbackHub", targets: ["FeedbackHub"]),
     ],
     targets: [
         .target(name: "FeedbackHub", path: "Sources/FeedbackHub"),
-        .testTarget(name: "FeedbackHubTests", dependencies: ["FeedbackHub"], path: "Tests/FeedbackHubTests"),
+        .testTarget(
+            name: "FeedbackHubTests",
+            dependencies: ["FeedbackHub"],
+            path: "Tests/FeedbackHubTests"
+        ),
     ]
 )

@@ -15,6 +15,14 @@ public final class FeedbackHub {
     private(set) public var endUserId: String?
     private(set) public var theme: Theme = Theme()
     private(set) public var projectName: String = ""
+    private(set) public var enabledKinds: [FeatureKind] = []
+    private(set) public var kindVisibility: [FeatureKind: Visibility] = [:]
+    private(set) public var kindInteractions: [FeatureKind: [Interaction]] = [:]
+
+    /// Interactions enabled by the admin for a given kind, in stable display order.
+    public func interactions(for kind: FeatureKind) -> [Interaction] {
+        kindInteractions[kind] ?? []
+    }
 
     @discardableResult
     public func initialize(projectKey: String,
@@ -35,17 +43,43 @@ public final class FeedbackHub {
         self.endUserId = res.end_user_id
         self.theme = res.theme
         self.projectName = res.project_name
+        self.enabledKinds = res.enabled_kinds.compactMap(FeatureKind.init(rawValue:))
+
+        var vMap: [FeatureKind: Visibility] = [:]
+        for (k, v) in res.kind_visibility ?? [:] {
+            if let kind = FeatureKind(rawValue: k), let vis = Visibility(rawValue: v) {
+                vMap[kind] = vis
+            }
+        }
+        self.kindVisibility = vMap
+
+        var iMap: [FeatureKind: [Interaction]] = [:]
+        for kind in FeatureKind.allCases {
+            iMap[kind] = res.interactions(for: kind)
+        }
+        self.kindInteractions = iMap
+
         return res.theme
     }
 
-    public func list(status: String? = nil, sort: String = "top") async throws -> [Feature] {
+    public func list(
+        status: String? = nil,
+        kind: FeatureKind? = nil,
+        sort: String = "top"
+    ) async throws -> [Feature] {
         guard let eu = endUserId else { throw FeedbackHubError.notInitialized }
         var q = "?end_user_id=\(eu)&sort=\(sort)"
         if let s = status { q += "&status=\(s)" }
+        if let k = kind { q += "&kind=\(k.rawValue)" }
         return try await request(path: "/sdk/features\(q)", method: "GET")
     }
 
-    public func submit(title: String, description: String = "", tag: String? = nil) async throws -> Feature {
+    public func submit(
+        title: String,
+        description: String = "",
+        tag: String? = nil,
+        kind: FeatureKind = .featureRequest
+    ) async throws -> Feature {
         guard let eu = endUserId else { throw FeedbackHubError.notInitialized }
         return try await request(
             path: "/sdk/features", method: "POST",
@@ -54,6 +88,7 @@ public final class FeedbackHub {
                 "title": title,
                 "description": description,
                 "tag": tag ?? NSNull(),
+                "kind": kind.rawValue,
             ]
         )
     }

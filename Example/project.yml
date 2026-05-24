@@ -1,0 +1,46 @@
+name: FeedbackHubDemo
+options:
+  bundleIdPrefix: dev.feedbackhub.demo
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Automatic
+
+packages:
+  FeedbackHub:
+    # Path is relative to this project.yml file -> Example/../ = the SDK root.
+    path: ../
+
+targets:
+  FeedbackHubDemo:
+    type: application
+    platform: iOS
+    sources:
+      - Sources
+    info:
+      path: Info.plist
+      properties:
+        CFBundleDisplayName: FBHub Demo
+        UILaunchScreen:
+          UIColorName: ""
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        # Allow http://localhost while developing against the local API.
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+          NSExceptionDomains:
+            localhost:
+              NSExceptionAllowsInsecureHTTPLoads: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.feedbackhub.demo.FeedbackHubDemo
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SUPPORTS_MACCATALYST: NO
+    dependencies:
+      - package: FeedbackHub
+        product: FeedbackHub

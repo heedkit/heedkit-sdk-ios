@@ -7,3 +7,7 @@ xcuserdata/
 *.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings
 .DS_Store
 Package.resolved
+
+# XcodeGen output for the Example app — regenerate with `xcodegen` from Example/
+Example/FeedbackHubDemo.xcodeproj/
+Example/Info.plist
