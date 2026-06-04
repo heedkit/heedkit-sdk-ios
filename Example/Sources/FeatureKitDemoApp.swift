@@ -30,10 +30,12 @@ struct FeatureKitDemoApp: App {
 }
 
 enum Config {
-    /// Public project key from the demo account. Safe to ship in client code.
-    static let projectKey = "fh_hpqXsmsukX2MzoH6ikBdvb8ar1FVCGGk"
+    /// Public project key (Integrations tab in the console). Safe to ship in
+    /// client code. This is the local Rails demo seed's key — swap in your own.
+    static let projectKey = "fk_UegAN0zxw4UqGrLO3uCF9sq-zPF-09Z2"
 
-    /// Local API URL. The simulator can reach localhost; physical devices need
-    /// your Mac's LAN address (e.g. "http://192.168.1.42:8000").
-    static let apiUrl = "http://localhost:8000"
+    /// Rails backend. The simulator can reach localhost; physical devices need
+    /// your Mac's LAN address (e.g. "http://192.168.1.42:3000"). The /sdk
+    /// endpoints are key-resolved, so the apex host works (no subdomain needed).
+    static let apiUrl = "http://localhost:3000"
 }

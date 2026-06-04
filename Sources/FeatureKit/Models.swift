@@ -38,7 +38,7 @@ public enum GroupMode: String, Codable {
     case list
 }
 
-public struct Theme: Codable {
+public struct Theme: Decodable {
     public var primary: String?
     public var radius: Int?
     /// `light`, `dark`, or `system` (follow OS preference at render time).
@@ -49,6 +49,31 @@ public struct Theme: Codable {
     public var group_mode: String?
     /// Per-kind toggle: when false, render the action icon without a count.
     public var show_counts: [String: Bool]?
+
+    public init() {}
+
+    private enum CodingKeys: String, CodingKey {
+        case primary, radius, mode, font_family, fontFamily, font_size, group_mode, show_counts
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        primary = try? c.decode(String.self, forKey: .primary)
+        mode = try? c.decode(String.self, forKey: .mode)
+        // The backend may send `fontFamily` (camelCase) instead of `font_family`.
+        font_family = (try? c.decode(String.self, forKey: .font_family)) ?? (try? c.decode(String.self, forKey: .fontFamily))
+        font_size = try? c.decode(String.self, forKey: .font_size)
+        group_mode = try? c.decode(String.self, forKey: .group_mode)
+        show_counts = try? c.decode([String: Bool].self, forKey: .show_counts)
+        // `radius` may be an Int (px) or a CSS string like "12px" / "0.75rem".
+        if let i = try? c.decode(Int.self, forKey: .radius) {
+            radius = i
+        } else if let s = try? c.decode(String.self, forKey: .radius) {
+            radius = Double(s.prefix { $0.isNumber || $0 == "." }).map { Int($0.rounded()) }
+        } else {
+            radius = nil
+        }
+    }
 
     public var groupMode: GroupMode {
         GroupMode(rawValue: group_mode ?? "tabs") ?? .tabs
@@ -92,7 +117,15 @@ public enum FeatureKind: String, Codable, CaseIterable {
     }
 }
 
-public struct Feature: Codable, Identifiable {
+/// Decode an `id` that may arrive as a JSON string (legacy) or number (Rails
+/// integer primary key) — always normalized to a String.
+func decodeFlexibleId<K: CodingKey>(_ c: KeyedDecodingContainer<K>, forKey key: K) -> String {
+    if let s = try? c.decode(String.self, forKey: key) { return s }
+    if let i = try? c.decode(Int64.self, forKey: key) { return String(i) }
+    return ""
+}
+
+public struct Feature: Decodable, Identifiable {
     public let id: String
     public let title: String
     public let description: String
@@ -100,7 +133,7 @@ public struct Feature: Codable, Identifiable {
     /// Raw string for forward compatibility with future server-added kinds.
     /// Use `featureKind` for the typed enum (falls back to `.other` if unknown).
     public let kind: String
-    /// `"public"` or `"private"`. Use `visibility` for the typed enum.
+    /// `"public"` or `"private"`. Use `visibilityEnum` for the typed enum.
     public let visibility: String?
     public let on_roadmap: Bool?
     public let tag: String?
@@ -110,41 +143,101 @@ public struct Feature: Codable, Identifiable {
     public let author_name: String?
     public let created_at: String
 
-    public var featureKind: FeatureKind {
-        FeatureKind(rawValue: kind) ?? .other
-    }
-
-    public var visibilityEnum: Visibility {
-        Visibility(rawValue: visibility ?? "public") ?? .publicVisibility
-    }
-
+    public var featureKind: FeatureKind { FeatureKind(rawValue: kind) ?? .other }
+    public var visibilityEnum: Visibility { Visibility(rawValue: visibility ?? "public") ?? .publicVisibility }
     public var onRoadmap: Bool { on_roadmap ?? false }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, title, description, status, kind, visibility, on_roadmap, tag
+        case vote_count, voted, platform, author, author_name, created_at
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        // The Rails backend uses integer ids, exposes the author display name as
+        // `author`, and omits null fields — so decode defensively.
+        id = decodeFlexibleId(c, forKey: .id)
+        title = (try? c.decode(String.self, forKey: .title)) ?? ""
+        description = (try? c.decode(String.self, forKey: .description)) ?? ""
+        status = (try? c.decode(String.self, forKey: .status)) ?? "open"
+        kind = (try? c.decode(String.self, forKey: .kind)) ?? "feature_request"
+        visibility = try? c.decode(String.self, forKey: .visibility)
+        on_roadmap = try? c.decode(Bool.self, forKey: .on_roadmap)
+        tag = try? c.decode(String.self, forKey: .tag)
+        vote_count = (try? c.decode(Int.self, forKey: .vote_count)) ?? 0
+        voted = (try? c.decode(Bool.self, forKey: .voted)) ?? false
+        platform = try? c.decode(String.self, forKey: .platform)
+        author_name = (try? c.decode(String.self, forKey: .author_name)) ?? (try? c.decode(String.self, forKey: .author))
+        created_at = (try? c.decode(String.self, forKey: .created_at)) ?? ""
+    }
 }
 
-public struct Comment: Codable, Identifiable {
+public struct Comment: Decodable, Identifiable {
     public let id: String
     public let body: String
     public let author_name: String?
     public let is_internal: Bool
     public let created_at: String
+
+    private enum CodingKeys: String, CodingKey {
+        case id, body, author, author_name, is_internal, created_at
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = decodeFlexibleId(c, forKey: .id)
+        body = (try? c.decode(String.self, forKey: .body)) ?? ""
+        author_name = (try? c.decode(String.self, forKey: .author_name)) ?? (try? c.decode(String.self, forKey: .author))
+        // The SDK endpoint only ever returns public comments; the field may be absent.
+        is_internal = (try? c.decode(Bool.self, forKey: .is_internal)) ?? false
+        created_at = (try? c.decode(String.self, forKey: .created_at)) ?? ""
+    }
 }
 
-struct InitResult: Codable {
-    let project_id: String
-    let project_name: String
+/// Project configuration returned by /sdk/init (nested under `project`).
+struct ProjectConfig: Decodable {
+    let name: String?
     let theme: Theme
     let enabled_kinds: [String]
-    /// Default visibility per kind for new submissions: `{ "feature_request": "public", ... }`.
     let kind_visibility: [String: String]?
-    /// Enabled interactions per kind: `{ "feature_request": { "upvote": true, "downvote": false }, ... }`.
     let kind_interactions: [String: [String: Bool]]?
+    let is_public_roadmap: Bool?
+}
+
+struct InitResult: Decodable {
     let end_user_id: String
+    let project: ProjectConfig
+
+    private enum CodingKeys: String, CodingKey { case end_user_id, project }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        // Rails returns an integer end_user_id; normalize to String.
+        end_user_id = decodeFlexibleId(c, forKey: .end_user_id)
+        project = try c.decode(ProjectConfig.self, forKey: .project)
+    }
+
+    var theme: Theme { project.theme }
+    var projectName: String { project.name ?? "" }
+    var enabledKinds: [String] { project.enabled_kinds }
+    var kindVisibility: [String: String]? { project.kind_visibility }
 
     /// Which interactions the admin has enabled for a given kind, in stable order.
     func interactions(for kind: FeatureKind) -> [Interaction] {
-        let row = kind_interactions?[kind.rawValue] ?? [:]
+        let row = project.kind_interactions?[kind.rawValue] ?? [:]
         return [.upvote, .downvote, .plusOne, .like].filter { row[$0.rawValue] == true }
     }
+}
+
+/// GET /sdk/features → `{ features: [...], next_cursor }`.
+struct FeaturesResult: Decodable {
+    let features: [Feature]
+    let next_cursor: String?
+}
+
+/// GET /sdk/features/:id/comments → `{ comments: [...] }`.
+struct CommentsResult: Decodable {
+    let comments: [Comment]
 }
 
 struct VoteResult: Codable {

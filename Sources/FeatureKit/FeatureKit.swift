@@ -105,11 +105,11 @@ public final class FeatureKit {
         )
         self.endUserId = res.end_user_id
         self.theme = res.theme
-        self.projectName = res.project_name
-        self.enabledKinds = res.enabled_kinds.compactMap(FeatureKind.init(rawValue:))
+        self.projectName = res.projectName
+        self.enabledKinds = res.enabledKinds.compactMap(FeatureKind.init(rawValue:))
 
         var vMap: [FeatureKind: Visibility] = [:]
-        for (k, v) in res.kind_visibility ?? [:] {
+        for (k, v) in res.kindVisibility ?? [:] {
             if let kind = FeatureKind(rawValue: k), let vis = Visibility(rawValue: v) {
                 vMap[kind] = vis
             }
@@ -134,7 +134,9 @@ public final class FeatureKit {
         var q = "?end_user_id=\(eu)&sort=\(sort)"
         if let s = status { q += "&status=\(s)" }
         if let k = kind { q += "&kind=\(k.rawValue)" }
-        return try await request(path: "/sdk/features\(q)", method: "GET")
+        // Rails returns { features, next_cursor }.
+        let result: FeaturesResult = try await request(path: "/sdk/features\(q)", method: "GET")
+        return result.features
     }
 
     public func submit(
@@ -166,7 +168,9 @@ public final class FeatureKit {
     }
 
     public func listComments(featureId: String) async throws -> [Comment] {
-        return try await request(path: "/sdk/features/\(featureId)/comments", method: "GET")
+        // Rails returns { comments: [...] }.
+        let result: CommentsResult = try await request(path: "/sdk/features/\(featureId)/comments", method: "GET")
+        return result.comments
     }
 
     public func comment(featureId: String, body: String) async throws -> Comment {
