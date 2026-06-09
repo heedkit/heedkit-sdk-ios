@@ -25,16 +25,19 @@ targets:
     info:
       path: Info.plist
       properties:
-        CFBundleDisplayName: FBHub Demo
+        CFBundleDisplayName: FeatureKit Demo
         UILaunchScreen:
           UIColorName: ""
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
-        # Allow http://localhost while developing against the local API.
+        # Allow http://localhost / http://127.0.0.1 while developing against the
+        # local Rails API (the simulator reaches the Mac on either host).
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
           NSExceptionDomains:
             localhost:
+              NSExceptionAllowsInsecureHTTPLoads: true
+            127.0.0.1:
               NSExceptionAllowsInsecureHTTPLoads: true
     settings:
       base:

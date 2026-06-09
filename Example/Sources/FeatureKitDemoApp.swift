@@ -1,41 +1,49 @@
 import SwiftUI
 import FeatureKit
 
+// MARK: - CONFIG (edit me)
+//
+// Point the demo at your local Rails backend and a project key.
+//
+//   1. Run the backend:   cd featurekit-rails && bin/dev   (serves :3000)
+//   2. Grab a project key from the console Install page (or db/seeds —
+//      the seeded "featurekit"/"demo" workspace). Never commit a real key.
+//   3. Paste it into `projectKey` below, OR pass it at launch with the
+//      FEATUREKIT_PROJECT_KEY / FEATUREKIT_API_URL environment variables
+//      (Xcode → Scheme → Run → Arguments → Environment Variables).
+//
+enum Config {
+    /// Public project key (safe to ship in client code). Placeholder by default —
+    /// the app shows a setup banner until you replace it or set the env var.
+    static let projectKey = env("FEATUREKIT_PROJECT_KEY") ?? "pk_REPLACE_ME"
+
+    /// Rails `/sdk` backend host. Defaults to the iOS-simulator-reachable host.
+    ///
+    /// Host cheatsheet (the apex route matches any Host, so no subdomain needed):
+    ///   - iOS simulator   -> http://localhost:3000          (this default)
+    ///   - Physical device -> http://<your-mac-LAN-ip>:3000  (e.g. 192.168.1.42)
+    ///   - Android emulator (other SDK) -> http://10.0.2.2:3000
+    static let apiUrl = env("FEATUREKIT_API_URL") ?? "http://localhost:3000"
+
+    /// True until a real key is supplied — drives the in-app setup banner.
+    static var keyIsPlaceholder: Bool { projectKey == "pk_REPLACE_ME" }
+
+    private static func env(_ name: String) -> String? {
+        guard let v = ProcessInfo.processInfo.environment[name],
+              !v.trimmingCharacters(in: .whitespaces).isEmpty else { return nil }
+        return v
+    }
+}
+
 @main
 struct FeatureKitDemoApp: App {
-    init() {
-        Task {
-            do {
-                try await FeatureKit.shared.initialize(
-                    projectKey: Config.projectKey,
-                    apiUrl: Config.apiUrl,
-                    user: .init(
-                        externalId: "demo-user-\(UUID().uuidString.prefix(6))",
-                        name: "Demo User",
-                        platform: "ios"
-                    )
-                )
-                print("✅ FeatureKit initialized for project: \(FeatureKit.shared.projectName)")
-            } catch {
-                print("⚠️ FeatureKit init failed: \(error)")
-            }
-        }
-    }
+    @StateObject private var session = DemoSession()
 
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(session)
+                .task { await session.start() }
         }
     }
-}
-
-enum Config {
-    /// Public project key (Integrations tab in the console). Safe to ship in
-    /// client code. This is the local Rails demo seed's key — swap in your own.
-    static let projectKey = "fk_UegAN0zxw4UqGrLO3uCF9sq-zPF-09Z2"
-
-    /// Rails backend. The simulator can reach localhost; physical devices need
-    /// your Mac's LAN address (e.g. "http://192.168.1.42:3000"). The /sdk
-    /// endpoints are key-resolved, so the apex host works (no subdomain needed).
-    static let apiUrl = "http://localhost:3000"
 }

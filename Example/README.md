@@ -1,102 +1,117 @@
-# FeatureKitDemo
+# FeatureKit iOS — Example app
 
-A minimal SwiftUI iOS app that wires up the local `FeatureKit` Swift package.
-Use it to dogfood the iOS SDK end-to-end against your running backend.
+A SwiftUI iOS app that drives the **local `FeatureKit` Swift package** (path
+dependency, not a published release) against the **Rails `/sdk` backend**. It
+walks the full SDK flow end to end:
 
-## What it does
+1. **Configure** the SDK with a project key + the Rails endpoint (`Config` at the
+   top of `Sources/FeatureKitDemoApp.swift`; override with env vars).
+2. **Init / identify** an end-user — `FeatureKit.shared.initialize(...)` → `POST /sdk/init`.
+3. **Fetch & display** features — `list(sort:)` → `GET /sdk/features` (Top / New).
+4. **Submit** a new feature — `submit(title:description:kind:)` → `POST /sdk/features`.
+5. **Upvote (toggle)** — `vote(featureId:)` → `POST /sdk/features/:id/vote`.
+6. **Comment** — `listComments` / `comment` → `GET` + `POST /sdk/features/:id/comments`.
 
-- Initializes the SDK against the demo project on app launch (`@main` init in
-  `FeatureKitDemoApp.swift`).
-- A button presents the built-in `FeatureKitView` in a sheet — the full
-  list/suggest UI from the SDK.
-- A second section exercises the headless API directly: fetch top requests,
-  tap to toggle a vote.
-- Shows the resolved project name and end-user id so you can confirm `/sdk/init`
-  succeeded.
+The `+` toolbar button submits, each row has an upvote button and a Comments
+sheet, and "Open FeatureKitView" presents the SDK's bundled widget (browse +
+suggest + vote + comment, themed by the project's `/sdk/init` response).
 
-## Run it
+> All of step 2–6 go through real SDK methods — the example never builds a
+> `URLRequest` by hand. The `X-Project-Key` header and `end_user_id` plumbing
+> live inside the SDK.
 
-You need: Xcode 15+, the API running locally on `http://localhost:8000`, and
-the demo project key wired up in the backend (it should be — the test account
-seeded it).
+## Prerequisites
 
-### Path A — fastest (with XcodeGen)
-
-```bash
-brew install xcodegen           # one-time
-cd Example
-xcodegen                        # generates FeatureKitDemo.xcodeproj
-open FeatureKitDemo.xcodeproj
-```
-
-In Xcode: select an iPhone 15 simulator, hit ⌘R.
-
-### Path B — no extra tools
-
-If you don't want to install XcodeGen:
-
-1. **Xcode → File → New → Project → iOS → App.**
-   - Product name: `FeatureKitDemo`
-   - Interface: SwiftUI
-   - Language: Swift
-   - Save it inside this `Example/` directory.
-2. **Delete the auto-generated `ContentView.swift` and `*App.swift`** files
-   that Xcode created.
-3. **Drag** the two files from `Example/Sources/` into the project navigator
-   (check "Copy items if needed" off — we want references to these files).
-4. **Add the local SDK as a package dependency:**
-   - File → Add Package Dependencies… → Add Local…
-   - Pick the parent directory (`featurekit-sdk-ios/`).
-   - Add the `FeatureKit` product to the demo target.
-5. **Allow http://localhost** in `Info.plist`:
-   ```xml
-   <key>NSAppTransportSecurity</key>
-   <dict>
-     <key>NSAllowsLocalNetworking</key><true/>
-     <key>NSExceptionDomains</key>
-     <dict>
-       <key>localhost</key>
-       <dict>
-         <key>NSExceptionAllowsInsecureHTTPLoads</key><true/>
-       </dict>
-     </dict>
-   </dict>
-   ```
-6. Set the deployment target to **iOS 16.0** (`NavigationStack` requirement).
-7. ⌘R.
+- **Xcode 15+** (deployment target iOS 16, for `NavigationStack`).
+- **The Rails backend running locally:**
+  ```bash
+  cd featurekit-rails
+  bin/dev            # serves http://localhost:3000
+  ```
+- **A project key.** Grab one from the console **Install** page, or from
+  `db/seeds` (the seeded `featurekit` / `demo` workspace). It's a public key
+  (`pk_…`), safe to ship in client code — but **never commit a real one**.
 
 ## Configure
 
-`Sources/FeatureKitDemoApp.swift` has a `Config` enum at the bottom:
+Open `Sources/FeatureKitDemoApp.swift` and edit `Config`:
 
 ```swift
 enum Config {
-    static let projectKey = "fh_hpqXsmsukX2MzoH6ikBdvb8ar1FVCGGk"
-    static let apiUrl = "http://localhost:8000"
+    static let projectKey = env("FEATUREKIT_PROJECT_KEY") ?? "pk_REPLACE_ME"
+    static let apiUrl     = env("FEATUREKIT_API_URL")     ?? "http://localhost:3000"
 }
 ```
 
-- Replace `projectKey` with one of your own from `/integrations` if you want
-  to test against a different project.
-- If you run on a **physical device**, `localhost` won't reach your Mac —
-  swap `apiUrl` for your Mac's LAN address (e.g. `http://192.168.1.42:8000`).
+Either paste your key into `projectKey`, or set it without touching code via
+**Xcode → Product → Scheme → Edit Scheme → Run → Arguments → Environment
+Variables**:
+
+| Variable                  | Example value             |
+| ------------------------- | ------------------------- |
+| `FEATUREKIT_PROJECT_KEY`  | `pk_your_real_key`        |
+| `FEATUREKIT_API_URL`      | `http://localhost:3000`   |
+
+Until a real key is set, the app shows a setup banner instead of calling the API.
+
+### Endpoint / host notes
+
+The Rails apex route matches any `Host`, so no subdomain is needed.
+
+| Where the app runs            | `apiUrl`                       |
+| ----------------------------- | ------------------------------ |
+| **iOS simulator** (default)   | `http://localhost:3000`        |
+| iOS simulator (alt)           | `http://127.0.0.1:3000`        |
+| **Physical iPhone**           | `http://<your-mac-LAN-ip>:3000` (e.g. `http://192.168.1.42:3000`) |
+| Android emulator (other SDK)  | `http://10.0.2.2:3000`         |
+
+`Info.plist` already whitelists `localhost` and `127.0.0.1` for cleartext HTTP.
+For a physical device on your LAN IP, add that IP under
+`NSAppTransportSecurity → NSExceptionDomains` too.
+
+## Run it
+
+### Path A — XcodeGen (fastest)
+
+```bash
+brew install xcodegen      # one-time
+cd Example
+xcodegen                   # regenerates FeatureKitDemo.xcodeproj from project.yml
+open FeatureKitDemo.xcodeproj
+```
+
+Select an iPhone simulator and press ⌘R.
+
+### Path B — open the checked-in project
+
+```bash
+cd Example
+open FeatureKitDemo.xcodeproj
+```
+
+The project already references the local SDK (`XCLocalSwiftPackageReference`
+pointing at the repo root) and lists all three sources. Pick a simulator, ⌘R.
+
+> The SDK is a **local path dependency** (`packages.FeatureKit.path: ../` in
+> `project.yml`). Edits to `Sources/FeatureKit/*` are picked up on the next build.
 
 ## What to verify
 
-1. App launches → console prints `✅ FeatureKit initialized for project: Demo App`.
-2. "Open feedback panel" → modal sheet shows the seeded "Dark mode polish",
-   "iPad split-view support", … each row tagged with a kind chip (Idea / Bug /
-   Feedback) next to the title.
-3. Tap a vote button → number updates and persists (refresh, it stays).
-4. Switch to "Suggest" → segmented control lets you pick **Idea / Bug /
-   Feedback**. Title placeholder + submit-button label both change with the
-   selection. Submit → close → reopen → your row appears with the right kind chip.
-5. **Quick submit** section in the demo: each row fires off a one-tap submission
-   for a specific kind without opening the SDK UI. Confirms `submit(kind:)`
-   works via the headless API too.
-6. "Fetch top requests" in the headless section pulls the same data with kind
-   chips on each row.
-7. Open `/dashboard` and `/features` in the web console — your submissions
-   show up with the right kind chip. On `/features` you can filter the
-   `Everything · Features · Bugs · Feedbacks` strip and only your bug rows
-   appear under "Bugs".
+1. Launch → "Connecting to http://localhost:3000…" then the **Session** section
+   fills in Project name + a monospaced End-user id (proves `/sdk/init` worked).
+2. **Roadmap (headless)** lists seeded features with kind chips; toggle **Top /
+   New** to re-query; tap the up-chevron to upvote (count + fill toggle).
+3. **+** → pick a kind, type a title, **Submit** → the row appears in the list.
+4. **Comments** on a row → existing comments load; send one → it appears, and is
+   visible to the bundled widget and the web console too.
+5. **Open FeatureKitView** → the SDK's full Browse / Suggest widget, themed by
+   the project config.
+
+## Files
+
+| File                              | Role                                                       |
+| --------------------------------- | ---------------------------------------------------------- |
+| `Sources/FeatureKitDemoApp.swift` | `@main` entry + `Config` (key/endpoint, env-var override). |
+| `Sources/DemoSession.swift`       | `ObservableObject` owning the whole `/sdk` flow.           |
+| `Sources/ContentView.swift`       | Thin SwiftUI UI: roadmap, submit sheet, comment sheet.     |
+| `project.yml` / `Info.plist`      | XcodeGen spec + ATS cleartext exceptions.                  |

@@ -1,138 +1,157 @@
 import SwiftUI
 import FeatureKit
 
+/// Thin UI over `DemoSession`. Walks the full SDK flow:
+///   1) configure + init (DemoSession.start, fired from the App)
+///   2) identify end-user  -> Session section
+///   3) fetch features     -> Roadmap section
+///   4) submit a feature   -> SubmitSheet
+///   5) upvote (toggle)    -> FeatureRow vote button
+///   6) comment            -> CommentSheet (headless) + the bundled FeatureKitView
 struct ContentView: View {
-    @State private var feedbackOpen = false
-    @State private var inlineFeatures: [Feature] = []
-    @State private var loading = false
-    @State private var errorMessage: String?
-    @State private var lastQuick: String?
+    @EnvironmentObject private var session: DemoSession
+
+    @State private var widgetOpen = false
+    @State private var submitOpen = false
+    @State private var commentTarget: Feature?
+    @State private var sort = "top"
 
     var body: some View {
         NavigationStack {
             List {
-                Section("Try the widget") {
-                    Button {
-                        feedbackOpen = true
-                    } label: {
-                        Label("Open feedback panel", systemImage: "bubble.left.and.bubble.right.fill")
+                if Config.keyIsPlaceholder { setupBanner }
+                statusSection
+                widgetSection
+                roadmapSection
+                sessionSection
+            }
+            .navigationTitle("FeatureKit Demo")
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button { submitOpen = true } label: {
+                        Image(systemName: "plus")
                     }
-                }
-
-                Section("Quick submit (headless)") {
-                    let kinds = FeatureKit.shared.enabledKinds.isEmpty
-                        ? FeatureKind.allCases
-                        : FeatureKit.shared.enabledKinds
-                    ForEach(kinds, id: \.self) { k in
-                        Button {
-                            Task { await quickSubmit(kind: k) }
-                        } label: {
-                            HStack {
-                                KindBadge(kind: k)
-                                Text(quickSubmitLabel(for: k))
-                            }
-                        }
-                    }
-
-                    if let lastQuick {
-                        Text("✓ Submitted: \(lastQuick)")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                Section("Headless API") {
-                    Button {
-                        Task { await loadFeatures() }
-                    } label: {
-                        if loading {
-                            HStack {
-                                ProgressView()
-                                Text("Loading…")
-                            }
-                        } else {
-                            Label("Fetch top requests", systemImage: "arrow.down.circle")
-                        }
-                    }
-                    .disabled(loading)
-
-                    ForEach(inlineFeatures) { f in
-                        FeatureRow(feature: f) {
-                            Task { await toggleVote(for: f) }
-                        }
-                    }
-
-                    if let errorMessage {
-                        Text(errorMessage)
-                            .font(.footnote)
-                            .foregroundStyle(.red)
-                    }
-                }
-
-                Section("Session") {
-                    LabeledContent("Project", value: FeatureKit.shared.projectName)
-                    LabeledContent("End-user id", value: FeatureKit.shared.endUserId ?? "—")
-                        .font(.system(.body, design: .monospaced))
+                    .disabled(session.phase != .ready)
                 }
             }
-            .navigationTitle("Feature Kit Demo")
-            .sheet(isPresented: $feedbackOpen) {
+            .sheet(isPresented: $widgetOpen) {
+                // The SDK's batteries-included widget: browse + suggest + vote +
+                // comment, themed by the project's /sdk/init response.
                 FeatureKitView()
             }
-        }
-    }
-
-    private func loadFeatures() async {
-        loading = true
-        errorMessage = nil
-        defer { loading = false }
-        do {
-            inlineFeatures = try await FeatureKit.shared.list()
-        } catch {
-            errorMessage = "Failed to load: \(error)"
-        }
-    }
-
-    private func toggleVote(for feature: Feature) async {
-        do {
-            let result = try await FeatureKit.shared.vote(featureId: feature.id)
-            if let i = inlineFeatures.firstIndex(where: { $0.id == feature.id }) {
-                inlineFeatures[i].voted = result.voted
-                inlineFeatures[i].vote_count = result.count
+            .sheet(isPresented: $submitOpen) {
+                SubmitSheet().environmentObject(session)
             }
-        } catch {
-            errorMessage = "Vote failed: \(error)"
-        }
-    }
-
-    private func quickSubmit(kind: FeatureKind) async {
-        let timestamp = Date().formatted(date: .omitted, time: .standard)
-        let title = "\(kind.label) from iOS demo"
-        let body = "Sent at \(timestamp)"
-        do {
-            let f = try await FeatureKit.shared.submit(
-                title: title,
-                description: body,
-                kind: kind
-            )
-            lastQuick = "\(f.featureKind.label) — \(f.title)"
-            // refresh the list section if it's been loaded
-            if !inlineFeatures.isEmpty {
-                await loadFeatures()
+            .sheet(item: $commentTarget) { feature in
+                CommentSheet(feature: feature).environmentObject(session)
             }
-        } catch {
-            errorMessage = "Quick submit failed: \(error)"
         }
     }
 
-    private func quickSubmitLabel(for kind: FeatureKind) -> String {
-        "Send a sample \(kind.label.lowercased())"
+    // MARK: Sections
+
+    private var setupBanner: some View {
+        Section {
+            Label {
+                Text("Set `Config.projectKey` (or the FEATUREKIT_PROJECT_KEY env var) to a real key, then relaunch.")
+            } icon: {
+                Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+            }
+            .font(.footnote)
+        }
+    }
+
+    @ViewBuilder
+    private var statusSection: some View {
+        switch session.phase {
+        case .idle, .initializing:
+            Section {
+                HStack { ProgressView(); Text("Connecting to \(Config.apiUrl)…") }
+            }
+        case .failed(let message):
+            Section {
+                Label(message, systemImage: "xmark.octagon.fill")
+                    .foregroundStyle(.red).font(.footnote)
+            }
+        case .ready:
+            if let action = session.lastAction {
+                Section {
+                    Label(action, systemImage: "checkmark.circle.fill")
+                        .foregroundStyle(.green).font(.footnote)
+                }
+            }
+        }
+    }
+
+    private var widgetSection: some View {
+        Section("Bundled widget") {
+            Button { widgetOpen = true } label: {
+                Label("Open FeatureKitView", systemImage: "bubble.left.and.bubble.right.fill")
+            }
+            .disabled(session.phase != .ready)
+        }
+    }
+
+    private var roadmapSection: some View {
+        Section {
+            Picker("Sort", selection: $sort) {
+                Text("Top").tag("top")
+                Text("New").tag("new")
+            }
+            .pickerStyle(.segmented)
+            .onChange(of: sort) { newValue in
+                Task { await session.reload(sort: newValue) }
+            }
+
+            if session.loadingFeatures {
+                HStack { ProgressView(); Text("Loading…") }
+            } else if session.features.isEmpty {
+                Text("No items yet — submit one with the + button.")
+                    .foregroundStyle(.secondary).font(.footnote)
+            } else {
+                ForEach(session.features) { feature in
+                    FeatureRow(
+                        feature: feature,
+                        onVote: { Task { await session.toggleVote(feature) } },
+                        onComment: { commentTarget = feature }
+                    )
+                }
+            }
+
+            if let error = session.errorMessage {
+                Text(error).foregroundStyle(.red).font(.footnote)
+            }
+        } header: {
+            HStack {
+                Text("Roadmap (headless)")
+                Spacer()
+                Button {
+                    Task { await session.reload(sort: sort) }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .disabled(session.phase != .ready)
+            }
+        }
+    }
+
+    private var sessionSection: some View {
+        Section("Session") {
+            LabeledContent("Project", value: session.projectName.isEmpty ? "—" : session.projectName)
+            LabeledContent("End-user id", value: session.endUserId ?? "—")
+                .font(.system(.body, design: .monospaced))
+            LabeledContent("Endpoint", value: Config.apiUrl)
+                .font(.system(.footnote, design: .monospaced))
+        }
     }
 }
+
+// MARK: - Feature row
 
 private struct FeatureRow: View {
     let feature: Feature
     let onVote: () -> Void
+    let onComment: () -> Void
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -141,30 +160,146 @@ private struct FeatureRow: View {
                     Image(systemName: "chevron.up").font(.caption2.bold())
                     Text("\(feature.vote_count)").font(.caption2.bold())
                 }
-                .frame(width: 36, height: 36)
+                .frame(width: 40, height: 38)
                 .foregroundStyle(feature.voted ? .white : .accentColor)
                 .background(feature.voted ? Color.accentColor : Color.accentColor.opacity(0.12))
                 .clipShape(RoundedRectangle(cornerRadius: 8))
             }
             .buttonStyle(.plain)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
                     Text(feature.title).font(.subheadline.weight(.semibold))
                     KindBadge(kind: feature.featureKind)
                 }
                 if !feature.description.isEmpty {
                     Text(feature.description)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
+                        .font(.caption).foregroundStyle(.secondary).lineLimit(2)
                 }
+                Button(action: onComment) {
+                    Label("Comments", systemImage: "text.bubble")
+                        .font(.caption2)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.tint)
             }
         }
         .padding(.vertical, 4)
     }
 }
 
-#Preview {
-    ContentView()
+// MARK: - Submit sheet (step 4)
+
+private struct SubmitSheet: View {
+    @EnvironmentObject private var session: DemoSession
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var title = ""
+    @State private var details = ""
+    @State private var kind: FeatureKind = .featureRequest
+    @State private var submitting = false
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Kind") {
+                    Picker("Kind", selection: $kind) {
+                        ForEach(session.enabledKinds, id: \.self) { Text($0.label).tag($0) }
+                    }
+                    .pickerStyle(.menu)
+                }
+                Section("Title") {
+                    TextField(kind.titlePlaceholder, text: $title)
+                }
+                Section("Description") {
+                    TextEditor(text: $details).frame(minHeight: 100)
+                }
+            }
+            .navigationTitle("New submission")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(submitting ? "Sending…" : "Submit") {
+                        Task {
+                            submitting = true
+                            let created = await session.submit(title: title, description: details, kind: kind)
+                            submitting = false
+                            if created != nil { dismiss() }
+                        }
+                    }
+                    .disabled(title.isEmpty || submitting)
+                }
+            }
+            .onAppear {
+                if !session.enabledKinds.contains(kind), let first = session.enabledKinds.first {
+                    kind = first
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Comment sheet (step 6, headless)
+
+private struct CommentSheet: View {
+    let feature: Feature
+    @EnvironmentObject private var session: DemoSession
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var comments: [Comment] = []
+    @State private var loaded = false
+    @State private var draft = ""
+    @State private var sending = false
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section(feature.title) {
+                    if !loaded {
+                        HStack { ProgressView(); Text("Loading…") }
+                    } else if comments.isEmpty {
+                        Text("No comments yet.").foregroundStyle(.secondary).font(.footnote)
+                    } else {
+                        ForEach(comments) { c in
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(c.author_name ?? "Anonymous").font(.caption.bold())
+                                Text(c.body).font(.callout)
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Comments")
+            .safeAreaInset(edge: .bottom) {
+                HStack {
+                    TextField("Add a comment…", text: $draft)
+                        .textFieldStyle(.roundedBorder)
+                    Button("Send") {
+                        Task {
+                            sending = true
+                            if let c = await session.addComment(to: feature, body: draft) {
+                                comments.append(c)
+                                draft = ""
+                            }
+                            sending = false
+                        }
+                    }
+                    .disabled(draft.isEmpty || sending)
+                }
+                .padding()
+                .background(.bar)
+            }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+            .task {
+                comments = await session.loadComments(for: feature)
+                loaded = true
+            }
+        }
+    }
 }
