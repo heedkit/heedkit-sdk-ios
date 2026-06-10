@@ -2,17 +2,17 @@
 import PackageDescription
 
 let package = Package(
-    name: "FeatureKit",
+    name: "HeedKit",
     platforms: [.iOS(.v16), .macOS(.v13)],
     products: [
-        .library(name: "FeatureKit", targets: ["FeatureKit"]),
+        .library(name: "HeedKit", targets: ["HeedKit"]),
     ],
     targets: [
-        .target(name: "FeatureKit", path: "Sources/FeatureKit"),
+        .target(name: "HeedKit", path: "Sources/HeedKit"),
         .testTarget(
-            name: "FeatureKitTests",
-            dependencies: ["FeatureKit"],
-            path: "Tests/FeatureKitTests"
+            name: "HeedKitTests",
+            dependencies: ["HeedKit"],
+            path: "Tests/HeedKitTests"
         ),
     ]
 )
