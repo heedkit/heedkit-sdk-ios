@@ -1,5 +1,5 @@
 import SwiftUI
-import FeatureKit
+import HeedKit
 
 /// Thin UI over `DemoSession`. Walks the full SDK flow:
 ///   1) configure + init (DemoSession.start, fired from the App)
@@ -7,7 +7,7 @@ import FeatureKit
 ///   3) fetch features     -> Roadmap section
 ///   4) submit a feature   -> SubmitSheet
 ///   5) upvote (toggle)    -> FeatureRow vote button
-///   6) comment            -> CommentSheet (headless) + the bundled FeatureKitView
+///   6) comment            -> CommentSheet (headless) + the bundled HeedKitView
 struct ContentView: View {
     @EnvironmentObject private var session: DemoSession
 
@@ -25,7 +25,7 @@ struct ContentView: View {
                 roadmapSection
                 sessionSection
             }
-            .navigationTitle("FeatureKit Demo")
+            .navigationTitle("HeedKit Demo")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button { submitOpen = true } label: {
@@ -37,7 +37,7 @@ struct ContentView: View {
             .sheet(isPresented: $widgetOpen) {
                 // The SDK's batteries-included widget: browse + suggest + vote +
                 // comment, themed by the project's /sdk/init response.
-                FeatureKitView()
+                HeedKitView()
             }
             .sheet(isPresented: $submitOpen) {
                 SubmitSheet().environmentObject(session)
@@ -53,7 +53,7 @@ struct ContentView: View {
     private var setupBanner: some View {
         Section {
             Label {
-                Text("Set `Config.projectKey` (or the FEATUREKIT_PROJECT_KEY env var) to a real key, then relaunch.")
+                Text("Set `Config.projectKey` (or the HEEDKIT_PROJECT_KEY env var) to a real key, then relaunch.")
             } icon: {
                 Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
             }
@@ -86,7 +86,7 @@ struct ContentView: View {
     private var widgetSection: some View {
         Section("Bundled widget") {
             Button { widgetOpen = true } label: {
-                Label("Open FeatureKitView", systemImage: "bubble.left.and.bubble.right.fill")
+                Label("Open HeedKitView", systemImage: "bubble.left.and.bubble.right.fill")
             }
             .disabled(session.phase != .ready)
         }

@@ -8,7 +8,7 @@ import Security
 /// launches — including app reinstalls on iOS, since Keychain items survive
 /// uninstall by default. Falls back to UserDefaults if Keychain is unavailable.
 enum DeviceId {
-    private static let service = "dev.featurekit.sdk"
+    private static let service = "dev.heedkit.sdk"
     private static let account = "device_id"
 
     static func get() -> String {
@@ -60,17 +60,17 @@ enum DeviceId {
 }
 
 
-public enum FeatureKitError: Error {
+public enum HeedKitError: Error {
     case notInitialized
     case http(Int, String)
     case decoding(Error)
 }
 
-public final class FeatureKit {
-    public static let shared = FeatureKit()
+public final class HeedKit {
+    public static let shared = HeedKit()
     private init() {}
 
-    private var apiUrl: URL = URL(string: "https://api.featurekit.dev")!
+    private var apiUrl: URL = URL(string: "https://api.heedkit.com")!
     private var projectKey: String?
     private(set) public var endUserId: String?
     private(set) public var theme: Theme = Theme()
@@ -86,7 +86,7 @@ public final class FeatureKit {
 
     @discardableResult
     public func initialize(projectKey: String,
-                           apiUrl: String = "https://api.featurekit.dev",
+                           apiUrl: String = "https://api.heedkit.com",
                            user: EndUser = EndUser()) async throws -> Theme {
         self.projectKey = projectKey
         if let u = URL(string: apiUrl) { self.apiUrl = u }
@@ -130,7 +130,7 @@ public final class FeatureKit {
         kind: FeatureKind? = nil,
         sort: String = "top"
     ) async throws -> [Feature] {
-        guard let eu = endUserId else { throw FeatureKitError.notInitialized }
+        guard let eu = endUserId else { throw HeedKitError.notInitialized }
         var q = "?end_user_id=\(eu)&sort=\(sort)"
         if let s = status { q += "&status=\(s)" }
         if let k = kind { q += "&kind=\(k.rawValue)" }
@@ -145,7 +145,7 @@ public final class FeatureKit {
         tag: String? = nil,
         kind: FeatureKind = .featureRequest
     ) async throws -> Feature {
-        guard let eu = endUserId else { throw FeatureKitError.notInitialized }
+        guard let eu = endUserId else { throw HeedKitError.notInitialized }
         return try await request(
             path: "/sdk/features", method: "POST",
             body: [
@@ -159,7 +159,7 @@ public final class FeatureKit {
     }
 
     public func vote(featureId: String) async throws -> (voted: Bool, count: Int) {
-        guard let eu = endUserId else { throw FeatureKitError.notInitialized }
+        guard let eu = endUserId else { throw HeedKitError.notInitialized }
         let r: VoteResult = try await request(
             path: "/sdk/features/\(featureId)/vote", method: "POST",
             body: ["end_user_id": eu]
@@ -174,7 +174,7 @@ public final class FeatureKit {
     }
 
     public func comment(featureId: String, body: String) async throws -> Comment {
-        guard let eu = endUserId else { throw FeatureKitError.notInitialized }
+        guard let eu = endUserId else { throw HeedKitError.notInitialized }
         return try await request(
             path: "/sdk/features/\(featureId)/comments", method: "POST",
             body: ["end_user_id": eu, "body": body]
@@ -185,9 +185,9 @@ public final class FeatureKit {
 
     private func request<T: Decodable>(path: String, method: String,
                                        body: [String: Any]? = nil) async throws -> T {
-        guard let projectKey = projectKey else { throw FeatureKitError.notInitialized }
+        guard let projectKey = projectKey else { throw HeedKitError.notInitialized }
         guard let url = URL(string: apiUrl.absoluteString + path) else {
-            throw FeatureKitError.http(0, "bad url")
+            throw HeedKitError.http(0, "bad url")
         }
         var req = URLRequest(url: url)
         req.httpMethod = method
@@ -200,12 +200,12 @@ public final class FeatureKit {
         let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
         guard (200..<300).contains(code) else {
             let msg = String(data: data, encoding: .utf8) ?? ""
-            throw FeatureKitError.http(code, msg)
+            throw HeedKitError.http(code, msg)
         }
         do {
             return try JSONDecoder().decode(T.self, from: data)
         } catch {
-            throw FeatureKitError.decoding(error)
+            throw HeedKitError.decoding(error)
         }
     }
 }

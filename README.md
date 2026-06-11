@@ -1,25 +1,25 @@
-# FeatureKit (iOS / Swift Package)
+# HeedKit (iOS / Swift Package)
 
-Native iOS SDK for Feature Kit.
+Native iOS SDK for HeedKit.
 
 ## Install
 
 `Package.swift`:
 ```swift
-.package(url: "https://github.com/yourorg/featurekit-sdk-ios.git", from: "0.1.0")
+.package(url: "https://github.com/heedkit-dev/heedkit-sdk-ios.git", from: "0.1.0")
 ```
 
 ## Quickstart
 
 ```swift
-import FeatureKit
+import HeedKit
 import SwiftUI
 
 @main
 struct MyApp: App {
     init() {
         Task {
-            try? await FeatureKit.shared.initialize(
+            try? await HeedKit.shared.initialize(
                 projectKey: "fh_xxx",
                 user: .init(externalId: "user-123", email: "you@app.com")
             )
@@ -32,7 +32,7 @@ struct ContentView: View {
     @State private var open = false
     var body: some View {
         Button("Send feedback") { open = true }
-            .sheet(isPresented: $open) { FeatureKitView() }
+            .sheet(isPresented: $open) { HeedKitView() }
     }
 }
 ```
@@ -40,6 +40,6 @@ struct ContentView: View {
 ## Programmatic
 
 ```swift
-let features = try await FeatureKit.shared.list()
-let (voted, count) = try await FeatureKit.shared.vote(featureId: id)
+let features = try await HeedKit.shared.list()
+let (voted, count) = try await HeedKit.shared.vote(featureId: id)
 ```

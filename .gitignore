@@ -9,5 +9,5 @@ xcuserdata/
 Package.resolved
 
 # XcodeGen output for the Example app — regenerate with `xcodegen` from Example/
-Example/FeatureKitDemo.xcodeproj/
+Example/HeedKitDemo.xcodeproj/
 Example/Info.plist

@@ -1,8 +1,8 @@
 import Foundation
-import FeatureKit
+import HeedKit
 
 /// Owns the whole demo flow against the Rails `/sdk` backend so the views stay
-/// thin. Every step here maps to one FeatureKit call (which in turn hits one
+/// thin. Every step here maps to one HeedKit call (which in turn hits one
 /// `/sdk/*` endpoint):
 ///
 ///   start()            -> initialize()  -> POST /sdk/init
@@ -29,7 +29,7 @@ final class DemoSession: ObservableObject {
     @Published var lastAction: String?
     @Published var errorMessage: String?
 
-    private let hub = FeatureKit.shared
+    private let hub = HeedKit.shared
 
     var projectName: String { hub.projectName }
     var endUserId: String? { hub.endUserId }
@@ -42,7 +42,7 @@ final class DemoSession: ObservableObject {
     func start() async {
         guard phase == .idle else { return }
         guard !Config.keyIsPlaceholder else {
-            phase = .failed("Set Config.projectKey (or FEATUREKIT_PROJECT_KEY) to a real key.")
+            phase = .failed("Set Config.projectKey (or HEEDKIT_PROJECT_KEY) to a real key.")
             return
         }
         phase = .initializing
@@ -55,7 +55,7 @@ final class DemoSession: ObservableObject {
                 // (the SDK then uses a Keychain-backed device id).
                 user: .init(
                     externalId: "ios-demo-user",
-                    email: "demo@featurekit.dev",
+                    email: "demo@heedkit.com",
                     name: "iOS Demo User",
                     platform: "ios"
                 )
@@ -139,14 +139,14 @@ final class DemoSession: ObservableObject {
 
     // MARK: - Errors
 
-    /// Turn FeatureKitError into something readable in the demo UI.
+    /// Turn HeedKitError into something readable in the demo UI.
     private func describe(_ error: Error) -> String {
         switch error {
-        case FeatureKitError.notInitialized:
+        case HeedKitError.notInitialized:
             return "SDK not initialized (check the project key)."
-        case FeatureKitError.http(let code, let msg):
+        case HeedKitError.http(let code, let msg):
             return "HTTP \(code): \(msg.isEmpty ? "request rejected" : msg)"
-        case FeatureKitError.decoding:
+        case HeedKitError.decoding:
             return "Could not decode the response."
         default:
             return error.localizedDescription

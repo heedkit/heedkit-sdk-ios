@@ -1,19 +1,19 @@
-# FeatureKit iOS — Example app
+# HeedKit iOS — Example app
 
-A SwiftUI iOS app that drives the **local `FeatureKit` Swift package** (path
+A SwiftUI iOS app that drives the **local `HeedKit` Swift package** (path
 dependency, not a published release) against the **Rails `/sdk` backend**. It
 walks the full SDK flow end to end:
 
 1. **Configure** the SDK with a project key + the Rails endpoint (`Config` at the
-   top of `Sources/FeatureKitDemoApp.swift`; override with env vars).
-2. **Init / identify** an end-user — `FeatureKit.shared.initialize(...)` → `POST /sdk/init`.
+   top of `Sources/HeedKitDemoApp.swift`; override with env vars).
+2. **Init / identify** an end-user — `HeedKit.shared.initialize(...)` → `POST /sdk/init`.
 3. **Fetch & display** features — `list(sort:)` → `GET /sdk/features` (Top / New).
 4. **Submit** a new feature — `submit(title:description:kind:)` → `POST /sdk/features`.
 5. **Upvote (toggle)** — `vote(featureId:)` → `POST /sdk/features/:id/vote`.
 6. **Comment** — `listComments` / `comment` → `GET` + `POST /sdk/features/:id/comments`.
 
 The `+` toolbar button submits, each row has an upvote button and a Comments
-sheet, and "Open FeatureKitView" presents the SDK's bundled widget (browse +
+sheet, and "Open HeedKitView" presents the SDK's bundled widget (browse +
 suggest + vote + comment, themed by the project's `/sdk/init` response).
 
 > All of step 2–6 go through real SDK methods — the example never builds a
@@ -25,21 +25,21 @@ suggest + vote + comment, themed by the project's `/sdk/init` response).
 - **Xcode 15+** (deployment target iOS 16, for `NavigationStack`).
 - **The Rails backend running locally:**
   ```bash
-  cd featurekit-rails
+  cd heedkit-rails
   bin/dev            # serves http://localhost:3000
   ```
 - **A project key.** Grab one from the console **Install** page, or from
-  `db/seeds` (the seeded `featurekit` / `demo` workspace). It's a public key
+  `db/seeds` (the seeded `heedkit` / `demo` workspace). It's a public key
   (`pk_…`), safe to ship in client code — but **never commit a real one**.
 
 ## Configure
 
-Open `Sources/FeatureKitDemoApp.swift` and edit `Config`:
+Open `Sources/HeedKitDemoApp.swift` and edit `Config`:
 
 ```swift
 enum Config {
-    static let projectKey = env("FEATUREKIT_PROJECT_KEY") ?? "pk_REPLACE_ME"
-    static let apiUrl     = env("FEATUREKIT_API_URL")     ?? "http://localhost:3000"
+    static let projectKey = env("HEEDKIT_PROJECT_KEY") ?? "pk_REPLACE_ME"
+    static let apiUrl     = env("HEEDKIT_API_URL")     ?? "http://localhost:3000"
 }
 ```
 
@@ -49,8 +49,8 @@ Variables**:
 
 | Variable                  | Example value             |
 | ------------------------- | ------------------------- |
-| `FEATUREKIT_PROJECT_KEY`  | `pk_your_real_key`        |
-| `FEATUREKIT_API_URL`      | `http://localhost:3000`   |
+| `HEEDKIT_PROJECT_KEY`  | `pk_your_real_key`        |
+| `HEEDKIT_API_URL`      | `http://localhost:3000`   |
 
 Until a real key is set, the app shows a setup banner instead of calling the API.
 
@@ -76,8 +76,8 @@ For a physical device on your LAN IP, add that IP under
 ```bash
 brew install xcodegen      # one-time
 cd Example
-xcodegen                   # regenerates FeatureKitDemo.xcodeproj from project.yml
-open FeatureKitDemo.xcodeproj
+xcodegen                   # regenerates HeedKitDemo.xcodeproj from project.yml
+open HeedKitDemo.xcodeproj
 ```
 
 Select an iPhone simulator and press ⌘R.
@@ -86,14 +86,14 @@ Select an iPhone simulator and press ⌘R.
 
 ```bash
 cd Example
-open FeatureKitDemo.xcodeproj
+open HeedKitDemo.xcodeproj
 ```
 
 The project already references the local SDK (`XCLocalSwiftPackageReference`
 pointing at the repo root) and lists all three sources. Pick a simulator, ⌘R.
 
-> The SDK is a **local path dependency** (`packages.FeatureKit.path: ../` in
-> `project.yml`). Edits to `Sources/FeatureKit/*` are picked up on the next build.
+> The SDK is a **local path dependency** (`packages.HeedKit.path: ../` in
+> `project.yml`). Edits to `Sources/HeedKit/*` are picked up on the next build.
 
 ## What to verify
 
@@ -104,14 +104,14 @@ pointing at the repo root) and lists all three sources. Pick a simulator, ⌘R.
 3. **+** → pick a kind, type a title, **Submit** → the row appears in the list.
 4. **Comments** on a row → existing comments load; send one → it appears, and is
    visible to the bundled widget and the web console too.
-5. **Open FeatureKitView** → the SDK's full Browse / Suggest widget, themed by
+5. **Open HeedKitView** → the SDK's full Browse / Suggest widget, themed by
    the project config.
 
 ## Files
 
 | File                              | Role                                                       |
 | --------------------------------- | ---------------------------------------------------------- |
-| `Sources/FeatureKitDemoApp.swift` | `@main` entry + `Config` (key/endpoint, env-var override). |
+| `Sources/HeedKitDemoApp.swift` | `@main` entry + `Config` (key/endpoint, env-var override). |
 | `Sources/DemoSession.swift`       | `ObservableObject` owning the whole `/sdk` flow.           |
 | `Sources/ContentView.swift`       | Thin SwiftUI UI: roadmap, submit sheet, comment sheet.     |
 | `project.yml` / `Info.plist`      | XcodeGen spec + ATS cleartext exceptions.                  |

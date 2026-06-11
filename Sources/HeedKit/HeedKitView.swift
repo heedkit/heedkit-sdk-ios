@@ -36,10 +36,10 @@ private extension Interaction {
     }
 }
 
-// MARK: - Top-level FeatureKitView
+// MARK: - Top-level HeedKitView
 
 @available(iOS 15.0, macOS 12.0, *)
-public struct FeatureKitView: View {
+public struct HeedKitView: View {
     @State private var features: [Feature] = []
     @State private var loading = true
     @State private var mode: Mode = .browse
@@ -51,12 +51,12 @@ public struct FeatureKitView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var systemColorScheme
 
-    private let hub = FeatureKit.shared
+    private let hub = HeedKit.shared
 
     public init() {
-        let kinds = FeatureKit.shared.enabledKinds
+        let kinds = HeedKit.shared.enabledKinds
         let first = kinds.first ?? .featureRequest
-        let mode = FeatureKit.shared.theme.groupMode
+        let mode = HeedKit.shared.theme.groupMode
         _activeKind = State(initialValue: mode == .tabs && !kinds.isEmpty ? .specific(first) : .all)
         _kind = State(initialValue: first)
     }
@@ -360,7 +360,7 @@ private struct FeatureRow: View {
     private func toggleComments() async {
         commentsOpen.toggle()
         if commentsOpen, !commentsLoaded {
-            comments = (try? await FeatureKit.shared.listComments(featureId: feature.id)) ?? []
+            comments = (try? await HeedKit.shared.listComments(featureId: feature.id)) ?? []
             commentsLoaded = true
         }
     }
@@ -368,7 +368,7 @@ private struct FeatureRow: View {
     private func sendComment() async {
         let body = commentDraft
         commentDraft = ""
-        if let c = try? await FeatureKit.shared.comment(featureId: feature.id, body: body) {
+        if let c = try? await HeedKit.shared.comment(featureId: feature.id, body: body) {
             comments.append(c)
         }
     }
@@ -389,7 +389,7 @@ private struct ContentEmpty: View {
 }
 
 /// Small pill showing a submission's kind. Public so apps can reuse it
-/// (e.g. in their own headless list UI alongside `FeatureKit.shared.list()`).
+/// (e.g. in their own headless list UI alongside `HeedKit.shared.list()`).
 @available(iOS 15.0, macOS 12.0, *)
 public struct KindBadge: View {
     public let kind: FeatureKind
