@@ -6,14 +6,21 @@ public struct EndUser: Codable {
     public var name: String?
     public var avatarUrl: String?
     public var platform: String?
+    /// HMAC_SHA256(projectSecret, externalId) as lowercase hex, computed on YOUR
+    /// backend. Required whenever `externalId` is set — the API rejects unsigned ids
+    /// with 401 invalid_user_signature. Never compute this in the app; the project
+    /// secret must not ship in a binary.
+    public var userHash: String?
 
     public init(externalId: String? = nil, email: String? = nil, name: String? = nil,
-                avatarUrl: String? = nil, platform: String? = "ios") {
+                avatarUrl: String? = nil, platform: String? = "ios",
+                userHash: String? = nil) {
         self.externalId = externalId
         self.email = email
         self.name = name
         self.avatarUrl = avatarUrl
         self.platform = platform
+        self.userHash = userHash
     }
 }
 
@@ -206,14 +213,17 @@ struct ProjectConfig: Decodable {
 
 struct InitResult: Decodable {
     let end_user_id: String
+    /// Signed replay token; sent as X-HeedKit-Identity on every later call.
+    let identity: String?
     let project: ProjectConfig
 
-    private enum CodingKeys: String, CodingKey { case end_user_id, project }
+    private enum CodingKeys: String, CodingKey { case end_user_id, identity, project }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         // Rails returns an integer end_user_id; normalize to String.
         end_user_id = decodeFlexibleId(c, forKey: .end_user_id)
+        identity = try? c.decode(String.self, forKey: .identity)
         project = try c.decode(ProjectConfig.self, forKey: .project)
     }
 

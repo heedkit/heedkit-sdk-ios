@@ -3,26 +3,49 @@ import Foundation
 import Security
 #endif
 
-/// Persists a stable per-device id in the Keychain so anonymous end-users
-/// (no externalId passed to `initialize`) keep the same EndUser across
-/// launches — including app reinstalls on iOS, since Keychain items survive
-/// uninstall by default. Falls back to UserDefaults if Keychain is unavailable.
-enum DeviceId {
-    private static let service = "dev.heedkit.sdk"
-    private static let account = "device_id"
+/// Persists the server-issued anonymous identity token so anonymous end-users keep
+/// the same EndUser (and their votes) across launches — including reinstalls, since
+/// Keychain items survive uninstall by default. Falls back to UserDefaults when the
+/// Keychain is unavailable.
+///
+/// This replaces the old device-id scheme: the API rejects any `external_id` that
+/// isn't HMAC-signed by the host backend, so anonymous continuity comes from
+/// replaying the signed token /sdk/init issued — never from a client-invented id.
+protocol IdentityTokenStoring {
+    func read(projectKey: String) -> String?
+    func write(_ token: String, projectKey: String)
+    func clear(projectKey: String)
+}
 
-    static func get() -> String {
-        if let existing = readKeychain() ?? UserDefaults.standard.string(forKey: account) {
-            return existing
-        }
-        let fresh = "dev_" + UUID().uuidString.lowercased().replacingOccurrences(of: "-", with: "")
-        if !writeKeychain(fresh) {
-            UserDefaults.standard.set(fresh, forKey: account)
-        }
-        return fresh
+struct KeychainIdentityTokenStore: IdentityTokenStoring {
+    private let service = "dev.heedkit.sdk"
+
+    private func account(_ projectKey: String) -> String { "identity." + projectKey }
+
+    func read(projectKey: String) -> String? {
+        readKeychain(account: account(projectKey))
+            ?? UserDefaults.standard.string(forKey: account(projectKey))
     }
 
-    private static func readKeychain() -> String? {
+    func write(_ token: String, projectKey: String) {
+        if !writeKeychain(token, account: account(projectKey)) {
+            UserDefaults.standard.set(token, forKey: account(projectKey))
+        }
+    }
+
+    func clear(projectKey: String) {
+        #if canImport(Security)
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account(projectKey),
+        ]
+        SecItemDelete(query as CFDictionary)
+        #endif
+        UserDefaults.standard.removeObject(forKey: account(projectKey))
+    }
+
+    private func readKeychain(account: String) -> String? {
         #if canImport(Security)
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -42,7 +65,7 @@ enum DeviceId {
     }
 
     @discardableResult
-    private static func writeKeychain(_ value: String) -> Bool {
+    private func writeKeychain(_ value: String, account: String) -> Bool {
         #if canImport(Security)
         let data = Data(value.utf8)
         let query: [String: Any] = [
@@ -72,6 +95,10 @@ public final class HeedKit {
 
     private var apiUrl: URL = URL(string: "https://api.heedkit.com")!
     private var projectKey: String?
+    /// Signed replay token from /sdk/init; attached to every later call as
+    /// X-HeedKit-Identity. Anonymous tokens are persisted via `identityStore`.
+    private(set) public var identity: String?
+    var identityStore: IdentityTokenStoring = KeychainIdentityTokenStore() // test seam
     private(set) public var endUserId: String?
     private(set) public var theme: Theme = Theme()
     private(set) public var projectName: String = ""
@@ -90,19 +117,33 @@ public final class HeedKit {
                            user: EndUser = EndUser()) async throws -> Theme {
         self.projectKey = projectKey
         if let u = URL(string: apiUrl) { self.apiUrl = u }
-        // Fall back to the Keychain-persisted device id when no externalId was
-        // passed — keeps the same EndUser across app launches for anonymous users.
-        let effectiveExternalId: Any = user.externalId ?? DeviceId.get()
-        let res: InitResult = try await request(
-            path: "/sdk/init", method: "POST",
-            body: [
-                "external_id": effectiveExternalId,
-                "email": user.email ?? NSNull(),
-                "name": user.name ?? NSNull(),
-                "avatar_url": user.avatarUrl ?? NSNull(),
-                "platform": user.platform ?? "ios",
-            ]
-        )
+
+        var body: [String: Any] = [
+            "email": user.email ?? NSNull(),
+            "name": user.name ?? NSNull(),
+            "avatar_url": user.avatarUrl ?? NSNull(),
+            "platform": user.platform ?? "ios",
+        ]
+        if let externalId = user.externalId {
+            // A named identity must be vouched for by the host app's BACKEND: the API
+            // rejects an external_id without its HMAC (401 invalid_user_signature).
+            body["external_id"] = externalId
+            body["user_hash"] = user.userHash ?? NSNull()
+            // A named identity supersedes any persisted anonymous one.
+            identityStore.clear(projectKey: projectKey)
+            self.identity = nil
+        } else {
+            // Anonymous: replay the persisted token so the backend re-selects the same
+            // end-user (votes survive relaunches) while still returning fresh config.
+            // A stale token just yields a fresh anonymous end-user.
+            self.identity = identityStore.read(projectKey: projectKey)
+        }
+
+        let res: InitResult = try await request(path: "/sdk/init", method: "POST", body: body)
+        self.identity = res.identity
+        if user.externalId == nil, let token = res.identity {
+            identityStore.write(token, projectKey: projectKey)
+        }
         self.endUserId = res.end_user_id
         self.theme = res.theme
         self.projectName = res.projectName
@@ -130,8 +171,9 @@ public final class HeedKit {
         kind: FeatureKind? = nil,
         sort: String = "top"
     ) async throws -> [Feature] {
-        guard let eu = endUserId else { throw HeedKitError.notInitialized }
-        var q = "?end_user_id=\(eu)&sort=\(sort)"
+        guard endUserId != nil else { throw HeedKitError.notInitialized }
+        // The caller is identified by the X-HeedKit-Identity header, not a param.
+        var q = "?sort=\(sort)"
         if let s = status { q += "&status=\(s)" }
         if let k = kind { q += "&kind=\(k.rawValue)" }
         // Rails returns { features, next_cursor }.
@@ -145,11 +187,10 @@ public final class HeedKit {
         tag: String? = nil,
         kind: FeatureKind = .featureRequest
     ) async throws -> Feature {
-        guard let eu = endUserId else { throw HeedKitError.notInitialized }
+        guard endUserId != nil else { throw HeedKitError.notInitialized }
         return try await request(
             path: "/sdk/features", method: "POST",
             body: [
-                "end_user_id": eu,
                 "title": title,
                 "description": description,
                 "tag": tag ?? NSNull(),
@@ -159,10 +200,10 @@ public final class HeedKit {
     }
 
     public func vote(featureId: String) async throws -> (voted: Bool, count: Int) {
-        guard let eu = endUserId else { throw HeedKitError.notInitialized }
+        guard endUserId != nil else { throw HeedKitError.notInitialized }
         let r: VoteResult = try await request(
             path: "/sdk/features/\(featureId)/vote", method: "POST",
-            body: ["end_user_id": eu]
+            body: [:]
         )
         return (r.voted, r.vote_count)
     }
@@ -174,10 +215,10 @@ public final class HeedKit {
     }
 
     public func comment(featureId: String, body: String) async throws -> Comment {
-        guard let eu = endUserId else { throw HeedKitError.notInitialized }
+        guard endUserId != nil else { throw HeedKitError.notInitialized }
         return try await request(
             path: "/sdk/features/\(featureId)/comments", method: "POST",
-            body: ["end_user_id": eu, "body": body]
+            body: ["body": body]
         )
     }
 
@@ -193,6 +234,9 @@ public final class HeedKit {
         req.httpMethod = method
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.setValue(projectKey, forHTTPHeaderField: "X-Project-Key")
+        if let identity = identity {
+            req.setValue(identity, forHTTPHeaderField: "X-HeedKit-Identity")
+        }
         if let body = body {
             req.httpBody = try JSONSerialization.data(withJSONObject: body)
         }
