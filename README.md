@@ -6,7 +6,7 @@ Native iOS SDK for HeedKit.
 
 `Package.swift`:
 ```swift
-.package(url: "https://github.com/heedkit-dev/heedkit-sdk-ios.git", from: "0.1.0")
+.package(url: "https://github.com/heedkit/heedkit-sdk-ios.git", from: "0.2.0")
 ```
 
 ## Quickstart
