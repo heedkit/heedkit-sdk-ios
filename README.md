@@ -23,13 +23,17 @@ struct MyApp: App {
             // so the same visitor keeps their votes across launches.
             try? await HeedKit.shared.initialize(
                 projectKey: "fk_xxx",
-                apiUrl: "https://heedkit.com/sdk"
+                apiUrl: "https://heedkit.com"
             )
         }
     }
     var body: some Scene { WindowGroup { ContentView() } }
 }
 ```
+
+> **`apiUrl`:** pass your HeedKit **origin** only (no `/sdk` suffix) — the SDK appends
+> `/sdk/...` itself, so `https://heedkit.com/sdk` double-stacks the path and 404s.
+> The default (`https://api.heedkit.com`) doesn't currently serve the API, so always set it.
 
 ### Identifying your signed-in user
 
@@ -43,7 +47,7 @@ app, then:
 ```swift
 try await HeedKit.shared.initialize(
     projectKey: "fk_xxx",
-    apiUrl: "https://heedkit.com/sdk",
+    apiUrl: "https://heedkit.com",
     user: .init(externalId: me.externalId, email: me.email, userHash: me.userHash)
 )
 ```
