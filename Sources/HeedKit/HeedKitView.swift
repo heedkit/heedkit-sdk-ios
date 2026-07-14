@@ -100,6 +100,13 @@ public struct HeedKitView: View {
                 Group {
                     if mode == .browse { listView } else { suggestForm }
                 }
+                Divider()
+                Link(destination: URL(string: "https://heedkit.com/?ref=widget")!) {
+                    (Text("Powered by ") + Text("HeedKit").fontWeight(.semibold))
+                }
+                .font(.caption2)
+                .foregroundColor(.secondary)
+                .padding(.vertical, 8)
             }
             .navigationTitle(hub.projectName.isEmpty ? "Feedback" : hub.projectName)
             #if os(iOS)
