@@ -6,9 +6,9 @@ public struct EndUser: Codable {
     public var name: String?
     public var avatarUrl: String?
     public var platform: String?
-    /// HMAC_SHA256(projectSecret, externalId) as lowercase hex, computed on YOUR
+    /// HMAC_SHA256(serverSecret, externalId) as lowercase hex, computed on YOUR
     /// backend. Required whenever `externalId` is set — the API rejects unsigned ids
-    /// with 401 invalid_user_signature. Never compute this in the app; the project
+    /// with 401 invalid_user_signature. Never compute this in the app; the workspace
     /// secret must not ship in a binary.
     public var userHash: String?
 
@@ -24,7 +24,7 @@ public struct EndUser: Codable {
     }
 }
 
-/// Whether items are visible beyond the submitter + the project team.
+/// Whether items are visible beyond the submitter + the workspace team.
 public enum Visibility: String, Codable, CaseIterable {
     case publicVisibility  = "public"
     case privateVisibility = "private"
@@ -201,8 +201,8 @@ public struct Comment: Decodable, Identifiable {
     }
 }
 
-/// Project configuration returned by /sdk/init (nested under `project`).
-struct ProjectConfig: Decodable {
+/// Workspace configuration returned by /sdk/init (nested under `workspace`).
+struct WorkspaceConfig: Decodable {
     let name: String?
     let theme: Theme
     let enabled_kinds: [String]
@@ -215,26 +215,26 @@ struct InitResult: Decodable {
     let end_user_id: String
     /// Signed replay token; sent as X-HeedKit-Identity on every later call.
     let identity: String?
-    let project: ProjectConfig
+    let workspace: WorkspaceConfig
 
-    private enum CodingKeys: String, CodingKey { case end_user_id, identity, project }
+    private enum CodingKeys: String, CodingKey { case end_user_id, identity, workspace }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         // Rails returns an integer end_user_id; normalize to String.
         end_user_id = decodeFlexibleId(c, forKey: .end_user_id)
         identity = try? c.decode(String.self, forKey: .identity)
-        project = try c.decode(ProjectConfig.self, forKey: .project)
+        workspace = try c.decode(WorkspaceConfig.self, forKey: .workspace)
     }
 
-    var theme: Theme { project.theme }
-    var projectName: String { project.name ?? "" }
-    var enabledKinds: [String] { project.enabled_kinds }
-    var kindVisibility: [String: String]? { project.kind_visibility }
+    var theme: Theme { workspace.theme }
+    var workspaceName: String { workspace.name ?? "" }
+    var enabledKinds: [String] { workspace.enabled_kinds }
+    var kindVisibility: [String: String]? { workspace.kind_visibility }
 
     /// Which interactions the admin has enabled for a given kind, in stable order.
     func interactions(for kind: FeatureKind) -> [Interaction] {
-        let row = project.kind_interactions?[kind.rawValue] ?? [:]
+        let row = workspace.kind_interactions?[kind.rawValue] ?? [:]
         return [.upvote, .downvote, .plusOne, .like].filter { row[$0.rawValue] == true }
     }
 }

@@ -12,37 +12,37 @@ import Security
 /// isn't HMAC-signed by the host backend, so anonymous continuity comes from
 /// replaying the signed token /sdk/init issued — never from a client-invented id.
 protocol IdentityTokenStoring {
-    func read(projectKey: String) -> String?
-    func write(_ token: String, projectKey: String)
-    func clear(projectKey: String)
+    func read(workspaceKey: String) -> String?
+    func write(_ token: String, workspaceKey: String)
+    func clear(workspaceKey: String)
 }
 
 struct KeychainIdentityTokenStore: IdentityTokenStoring {
     private let service = "dev.heedkit.sdk"
 
-    private func account(_ projectKey: String) -> String { "identity." + projectKey }
+    private func account(_ workspaceKey: String) -> String { "identity." + workspaceKey }
 
-    func read(projectKey: String) -> String? {
-        readKeychain(account: account(projectKey))
-            ?? UserDefaults.standard.string(forKey: account(projectKey))
+    func read(workspaceKey: String) -> String? {
+        readKeychain(account: account(workspaceKey))
+            ?? UserDefaults.standard.string(forKey: account(workspaceKey))
     }
 
-    func write(_ token: String, projectKey: String) {
-        if !writeKeychain(token, account: account(projectKey)) {
-            UserDefaults.standard.set(token, forKey: account(projectKey))
+    func write(_ token: String, workspaceKey: String) {
+        if !writeKeychain(token, account: account(workspaceKey)) {
+            UserDefaults.standard.set(token, forKey: account(workspaceKey))
         }
     }
 
-    func clear(projectKey: String) {
+    func clear(workspaceKey: String) {
         #if canImport(Security)
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: account(projectKey),
+            kSecAttrAccount as String: account(workspaceKey),
         ]
         SecItemDelete(query as CFDictionary)
         #endif
-        UserDefaults.standard.removeObject(forKey: account(projectKey))
+        UserDefaults.standard.removeObject(forKey: account(workspaceKey))
     }
 
     private func readKeychain(account: String) -> String? {
@@ -94,14 +94,14 @@ public final class HeedKit {
     private init() {}
 
     private var apiUrl: URL = URL(string: "https://api.heedkit.com")!
-    private var projectKey: String?
+    private var workspaceKey: String?
     /// Signed replay token from /sdk/init; attached to every later call as
     /// X-HeedKit-Identity. Anonymous tokens are persisted via `identityStore`.
     private(set) public var identity: String?
     var identityStore: IdentityTokenStoring = KeychainIdentityTokenStore() // test seam
     private(set) public var endUserId: String?
     private(set) public var theme: Theme = Theme()
-    private(set) public var projectName: String = ""
+    private(set) public var workspaceName: String = ""
     private(set) public var enabledKinds: [FeatureKind] = []
     private(set) public var kindVisibility: [FeatureKind: Visibility] = [:]
     private(set) public var kindInteractions: [FeatureKind: [Interaction]] = [:]
@@ -112,10 +112,10 @@ public final class HeedKit {
     }
 
     @discardableResult
-    public func initialize(projectKey: String,
+    public func initialize(workspaceKey: String,
                            apiUrl: String = "https://api.heedkit.com",
                            user: EndUser = EndUser()) async throws -> Theme {
-        self.projectKey = projectKey
+        self.workspaceKey = workspaceKey
         if let u = URL(string: apiUrl) { self.apiUrl = u }
 
         var body: [String: Any] = [
@@ -130,23 +130,23 @@ public final class HeedKit {
             body["external_id"] = externalId
             body["user_hash"] = user.userHash ?? NSNull()
             // A named identity supersedes any persisted anonymous one.
-            identityStore.clear(projectKey: projectKey)
+            identityStore.clear(workspaceKey: workspaceKey)
             self.identity = nil
         } else {
             // Anonymous: replay the persisted token so the backend re-selects the same
             // end-user (votes survive relaunches) while still returning fresh config.
             // A stale token just yields a fresh anonymous end-user.
-            self.identity = identityStore.read(projectKey: projectKey)
+            self.identity = identityStore.read(workspaceKey: workspaceKey)
         }
 
         let res: InitResult = try await request(path: "/sdk/init", method: "POST", body: body)
         self.identity = res.identity
         if user.externalId == nil, let token = res.identity {
-            identityStore.write(token, projectKey: projectKey)
+            identityStore.write(token, workspaceKey: workspaceKey)
         }
         self.endUserId = res.end_user_id
         self.theme = res.theme
-        self.projectName = res.projectName
+        self.workspaceName = res.workspaceName
         self.enabledKinds = res.enabledKinds.compactMap(FeatureKind.init(rawValue:))
 
         var vMap: [FeatureKind: Visibility] = [:]
@@ -226,14 +226,14 @@ public final class HeedKit {
 
     private func request<T: Decodable>(path: String, method: String,
                                        body: [String: Any]? = nil) async throws -> T {
-        guard let projectKey = projectKey else { throw HeedKitError.notInitialized }
+        guard let workspaceKey = workspaceKey else { throw HeedKitError.notInitialized }
         guard let url = URL(string: apiUrl.absoluteString + path) else {
             throw HeedKitError.http(0, "bad url")
         }
         var req = URLRequest(url: url)
         req.httpMethod = method
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.setValue(projectKey, forHTTPHeaderField: "X-Project-Key")
+        req.setValue(workspaceKey, forHTTPHeaderField: "X-Workspace-Key")
         if let identity = identity {
             req.setValue(identity, forHTTPHeaderField: "X-HeedKit-Identity")
         }
@@ -253,4 +253,3 @@ public final class HeedKit {
         }
     }
 }
-

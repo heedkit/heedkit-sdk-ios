@@ -36,7 +36,7 @@ struct ContentView: View {
             }
             .sheet(isPresented: $widgetOpen) {
                 // The SDK's batteries-included widget: browse + suggest + vote +
-                // comment, themed by the project's /sdk/init response.
+                // comment, themed by the workspace's /sdk/init response.
                 HeedKitView()
             }
             .sheet(isPresented: $submitOpen) {
@@ -53,7 +53,7 @@ struct ContentView: View {
     private var setupBanner: some View {
         Section {
             Label {
-                Text("Set `Config.projectKey` (or the HEEDKIT_PROJECT_KEY env var) to a real key, then relaunch.")
+                Text("Set `Config.workspaceKey` (or the HEEDKIT_WORKSPACE_KEY env var) to a real key, then relaunch.")
             } icon: {
                 Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
             }
@@ -137,7 +137,7 @@ struct ContentView: View {
 
     private var sessionSection: some View {
         Section("Session") {
-            LabeledContent("Project", value: session.projectName.isEmpty ? "—" : session.projectName)
+            LabeledContent("Workspace", value: session.workspaceName.isEmpty ? "—" : session.workspaceName)
             LabeledContent("End-user id", value: session.endUserId ?? "—")
                 .font(.system(.body, design: .monospaced))
             LabeledContent("Endpoint", value: Config.apiUrl)

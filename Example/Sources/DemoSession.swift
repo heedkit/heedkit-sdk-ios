@@ -12,7 +12,7 @@ import HeedKit
 ///   loadComments(...)  -> listComments()-> GET  /sdk/features/:id/comments
 ///   addComment(...)    -> comment()     -> POST /sdk/features/:id/comments
 ///
-/// The `X-Project-Key` header and `end_user_id` plumbing are handled inside the
+/// The `X-Workspace-Key` header and `end_user_id` plumbing are handled inside the
 /// SDK — the example never has to build a URLRequest by hand.
 @MainActor
 final class DemoSession: ObservableObject {
@@ -31,7 +31,7 @@ final class DemoSession: ObservableObject {
 
     private let hub = HeedKit.shared
 
-    var projectName: String { hub.projectName }
+    var workspaceName: String { hub.workspaceName }
     var endUserId: String? { hub.endUserId }
     var enabledKinds: [FeatureKind] {
         hub.enabledKinds.isEmpty ? FeatureKind.allCases : hub.enabledKinds
@@ -42,13 +42,13 @@ final class DemoSession: ObservableObject {
     func start() async {
         guard phase == .idle else { return }
         guard !Config.keyIsPlaceholder else {
-            phase = .failed("Set Config.projectKey (or HEEDKIT_PROJECT_KEY) to a real key.")
+            phase = .failed("Set Config.workspaceKey (or HEEDKIT_WORKSPACE_KEY) to a real key.")
             return
         }
         phase = .initializing
         do {
             try await hub.initialize(
-                projectKey: Config.projectKey,
+                workspaceKey: Config.workspaceKey,
                 apiUrl: Config.apiUrl,
                 // A stable externalId keeps this demo user across launches so
                 // their votes/submissions persist. Drop it to go anonymous
@@ -143,7 +143,7 @@ final class DemoSession: ObservableObject {
     private func describe(_ error: Error) -> String {
         switch error {
         case HeedKitError.notInitialized:
-            return "SDK not initialized (check the project key)."
+            return "SDK not initialized (check the workspace key)."
         case HeedKitError.http(let code, let msg):
             return "HTTP \(code): \(msg.isEmpty ? "request rejected" : msg)"
         case HeedKitError.decoding:

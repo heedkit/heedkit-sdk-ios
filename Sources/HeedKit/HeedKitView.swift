@@ -108,7 +108,7 @@ public struct HeedKitView: View {
                 .foregroundColor(.secondary)
                 .padding(.vertical, 8)
             }
-            .navigationTitle(hub.projectName.isEmpty ? "Feedback" : hub.projectName)
+            .navigationTitle(hub.workspaceName.isEmpty ? "Feedback" : hub.workspaceName)
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif

@@ -106,11 +106,11 @@ final class ModelsTests: XCTestCase {
     // MARK: - InitResult — the SDK handshake payload
 
     func testInitResultDecodesFullPayload() throws {
-        // The Rails backend nests project config under `project`.
+        // The Rails backend nests workspace config under `workspace`.
         let json = """
         {
           "end_user_id": "eu-alice",
-          "project": {
+          "workspace": {
             "name": "Acme",
             "theme": {
               "primary": "#000000",
@@ -135,7 +135,7 @@ final class ModelsTests: XCTestCase {
         """.data(using: .utf8)!
 
         let r = try JSONDecoder().decode(InitResult.self, from: json)
-        XCTAssertEqual(r.projectName, "Acme")
+        XCTAssertEqual(r.workspaceName, "Acme")
         XCTAssertEqual(r.end_user_id, "eu-alice")
         XCTAssertEqual(r.theme.font_family, "inter")
         XCTAssertEqual(r.theme.group_mode, "tabs")
@@ -149,7 +149,7 @@ final class ModelsTests: XCTestCase {
         let json = """
         {
           "end_user_id": "eu",
-          "project": {
+          "workspace": {
             "name": "n", "theme": {}, "enabled_kinds": [],
             "kind_visibility": null,
             "kind_interactions": { "feature_request": { "downvote": true, "upvote": true } }
@@ -165,7 +165,7 @@ final class ModelsTests: XCTestCase {
         let json = """
         {
           "end_user_id": "eu",
-          "project": { "name": "n", "theme": {}, "enabled_kinds": [], "kind_visibility": null, "kind_interactions": null }
+          "workspace": { "name": "n", "theme": {}, "enabled_kinds": [], "kind_visibility": null, "kind_interactions": null }
         }
         """.data(using: .utf8)!
         let r = try JSONDecoder().decode(InitResult.self, from: json)

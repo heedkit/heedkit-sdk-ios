@@ -56,15 +56,15 @@ final class StubURLProtocol: URLProtocol {
 
 final class InMemoryIdentityStore: IdentityTokenStoring {
     var tokens: [String: String] = [:]
-    func read(projectKey: String) -> String? { tokens[projectKey] }
-    func write(_ token: String, projectKey: String) { tokens[projectKey] = token }
-    func clear(projectKey: String) { tokens.removeValue(forKey: projectKey) }
+    func read(workspaceKey: String) -> String? { tokens[workspaceKey] }
+    func write(_ token: String, workspaceKey: String) { tokens[workspaceKey] = token }
+    func clear(workspaceKey: String) { tokens.removeValue(forKey: workspaceKey) }
 }
 
 final class ClientIdentityTests: XCTestCase {
     static let initJSON = """
     { "end_user_id": 7, "identity": "idtok-1",
-      "project": { "name": "T", "theme": {}, "enabled_kinds": ["feature_request"],
+      "workspace": { "name": "T", "theme": {}, "enabled_kinds": ["feature_request"],
                    "kind_visibility": {}, "kind_interactions": {} } }
     """
 
@@ -86,17 +86,18 @@ final class ClientIdentityTests: XCTestCase {
 
     func testIdentifiedInitSendsExternalIdAndUserHash() async throws {
         _ = try await HeedKit.shared.initialize(
-            projectKey: "fk_t", apiUrl: "https://stub.test",
+            workspaceKey: "fk_t", apiUrl: "https://stub.test",
             user: EndUser(externalId: "u-1", email: "a@b.c", userHash: "abc123")
         )
         let call = StubURLProtocol.captured[0]
         XCTAssertEqual(call.body["external_id"] as? String, "u-1")
         XCTAssertEqual(call.body["user_hash"] as? String, "abc123")
+        XCTAssertEqual(call.headers["X-Workspace-Key"], "fk_t")
         XCTAssertNil(call.headers["X-HeedKit-Identity"], "no stale token on an identified init")
     }
 
     func testAnonymousInitOmitsExternalIdAndPersistsToken() async throws {
-        _ = try await HeedKit.shared.initialize(projectKey: "fk_t", apiUrl: "https://stub.test")
+        _ = try await HeedKit.shared.initialize(workspaceKey: "fk_t", apiUrl: "https://stub.test")
         let call = StubURLProtocol.captured[0]
         XCTAssertNil(call.body["external_id"], "unsigned external ids are rejected by the API")
         XCTAssertNil(call.body["user_hash"])
@@ -105,7 +106,7 @@ final class ClientIdentityTests: XCTestCase {
 
     func testAnonymousReinitReplaysPersistedToken() async throws {
         store.tokens["fk_t"] = "idtok-old"
-        _ = try await HeedKit.shared.initialize(projectKey: "fk_t", apiUrl: "https://stub.test")
+        _ = try await HeedKit.shared.initialize(workspaceKey: "fk_t", apiUrl: "https://stub.test")
         let call = StubURLProtocol.captured[0]
         XCTAssertEqual(call.headers["X-HeedKit-Identity"], "idtok-old")
         XCTAssertEqual(store.tokens["fk_t"], "idtok-1", "refreshed token replaces the old one")
@@ -114,14 +115,14 @@ final class ClientIdentityTests: XCTestCase {
     func testIdentifiedInitClearsPersistedAnonymousToken() async throws {
         store.tokens["fk_t"] = "idtok-old"
         _ = try await HeedKit.shared.initialize(
-            projectKey: "fk_t", apiUrl: "https://stub.test",
+            workspaceKey: "fk_t", apiUrl: "https://stub.test",
             user: EndUser(externalId: "u-1", userHash: "abc123")
         )
         XCTAssertNil(store.tokens["fk_t"], "a named identity supersedes the anonymous one")
     }
 
     func testLaterCallsReplayIdentityAndDropLegacyEndUserId() async throws {
-        _ = try await HeedKit.shared.initialize(projectKey: "fk_t", apiUrl: "https://stub.test")
+        _ = try await HeedKit.shared.initialize(workspaceKey: "fk_t", apiUrl: "https://stub.test")
         StubURLProtocol.reset(responseBody: #"{ "voted": true, "vote_count": 1 }"#)
 
         _ = try await HeedKit.shared.vote(featureId: "42")

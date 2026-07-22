@@ -4,7 +4,7 @@ A SwiftUI iOS app that drives the **local `HeedKit` Swift package** (path
 dependency, not a published release) against the **Rails `/sdk` backend**. It
 walks the full SDK flow end to end:
 
-1. **Configure** the SDK with a project key + the Rails endpoint (`Config` at the
+1. **Configure** the SDK with a workspace key + the Rails endpoint (`Config` at the
    top of `Sources/HeedKitDemoApp.swift`; override with env vars).
 2. **Init / identify** an end-user — `HeedKit.shared.initialize(...)` → `POST /sdk/init`.
 3. **Fetch & display** features — `list(sort:)` → `GET /sdk/features` (Top / New).
@@ -14,10 +14,10 @@ walks the full SDK flow end to end:
 
 The `+` toolbar button submits, each row has an upvote button and a Comments
 sheet, and "Open HeedKitView" presents the SDK's bundled widget (browse +
-suggest + vote + comment, themed by the project's `/sdk/init` response).
+suggest + vote + comment, themed by the workspace's `/sdk/init` response).
 
 > All of step 2–6 go through real SDK methods — the example never builds a
-> `URLRequest` by hand. The `X-Project-Key` header and `end_user_id` plumbing
+> `URLRequest` by hand. The `X-Workspace-Key` header and `end_user_id` plumbing
 > live inside the SDK.
 
 ## Prerequisites
@@ -28,7 +28,7 @@ suggest + vote + comment, themed by the project's `/sdk/init` response).
   cd heedkit-rails
   bin/dev            # serves http://localhost:3000
   ```
-- **A project key.** Grab one from the console **Install** page, or from
+- **A workspace key.** Grab one from the console **Install** page, or from
   `db/seeds` (the seeded `heedkit` / `demo` workspace). It's a public key
   (`pk_…`), safe to ship in client code — but **never commit a real one**.
 
@@ -38,18 +38,18 @@ Open `Sources/HeedKitDemoApp.swift` and edit `Config`:
 
 ```swift
 enum Config {
-    static let projectKey = env("HEEDKIT_PROJECT_KEY") ?? "pk_REPLACE_ME"
+    static let workspaceKey = env("HEEDKIT_WORKSPACE_KEY") ?? "pk_REPLACE_ME"
     static let apiUrl     = env("HEEDKIT_API_URL")     ?? "http://localhost:3000"
 }
 ```
 
-Either paste your key into `projectKey`, or set it without touching code via
+Either paste your key into `workspaceKey`, or set it without touching code via
 **Xcode → Product → Scheme → Edit Scheme → Run → Arguments → Environment
 Variables**:
 
 | Variable                  | Example value             |
 | ------------------------- | ------------------------- |
-| `HEEDKIT_PROJECT_KEY`  | `pk_your_real_key`        |
+| `HEEDKIT_WORKSPACE_KEY`  | `pk_your_real_key`        |
 | `HEEDKIT_API_URL`      | `http://localhost:3000`   |
 
 Until a real key is set, the app shows a setup banner instead of calling the API.
@@ -98,14 +98,14 @@ pointing at the repo root) and lists all three sources. Pick a simulator, ⌘R.
 ## What to verify
 
 1. Launch → "Connecting to http://localhost:3000…" then the **Session** section
-   fills in Project name + a monospaced End-user id (proves `/sdk/init` worked).
+   fills in Workspace name + a monospaced End-user id (proves `/sdk/init` worked).
 2. **Roadmap (headless)** lists seeded features with kind chips; toggle **Top /
    New** to re-query; tap the up-chevron to upvote (count + fill toggle).
 3. **+** → pick a kind, type a title, **Submit** → the row appears in the list.
 4. **Comments** on a row → existing comments load; send one → it appears, and is
    visible to the bundled widget and the web console too.
 5. **Open HeedKitView** → the SDK's full Browse / Suggest widget, themed by
-   the project config.
+   the workspace config.
 
 ## Files
 
