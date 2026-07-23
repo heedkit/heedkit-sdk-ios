@@ -1,7 +1,7 @@
 # heedkit-sdk-ios — Guide for Claude Code
 
 iOS/SwiftUI SDK for the HeedKit feedback widget. SwiftPM library product `HeedKit`,
-**v0.1.0**. Standalone native implementation (does **not** depend on `heedkit-sdk-kmp`).
+**v0.3.0**. Standalone native implementation (does **not** depend on `heedkit-sdk-kmp`).
 
 - **Toolchain:** Swift Package Manager. Manifest `Package.swift`.
 - **Source (`Sources/HeedKit/`):** `HeedKit.swift` (client — HeedKit `/sdk/*` API + HMAC

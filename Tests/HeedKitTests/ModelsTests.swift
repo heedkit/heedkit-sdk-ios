@@ -161,6 +161,38 @@ final class ModelsTests: XCTestCase {
         XCTAssertEqual(r.interactions(for: .featureRequest), [.upvote, .downvote])
     }
 
+    func testInitResultDecodesBranding() throws {
+        let json = """
+        {
+          "end_user_id": "eu",
+          "workspace": {
+            "name": "n", "theme": {}, "enabled_kinds": [],
+            "branding": {
+              "show_powered_by": false,
+              "label": "Powered by HeedKit",
+              "url": "https://heedkit.com/?utm_source=widget"
+            }
+          }
+        }
+        """.data(using: .utf8)!
+        let r = try JSONDecoder().decode(InitResult.self, from: json)
+        XCTAssertEqual(r.branding?.show_powered_by, false)
+        XCTAssertEqual(r.branding?.label, "Powered by HeedKit")
+        XCTAssertEqual(r.branding?.url, "https://heedkit.com/?utm_source=widget")
+    }
+
+    func testInitResultToleratesMissingBranding() throws {
+        // Backcompat: older backends don't send `branding`.
+        let json = """
+        {
+          "end_user_id": "eu",
+          "workspace": { "name": "n", "theme": {}, "enabled_kinds": [] }
+        }
+        """.data(using: .utf8)!
+        let r = try JSONDecoder().decode(InitResult.self, from: json)
+        XCTAssertNil(r.branding)
+    }
+
     func testInitResultInteractionsForUnknownKindIsEmpty() throws {
         let json = """
         {

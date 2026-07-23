@@ -100,13 +100,15 @@ public struct HeedKitView: View {
                 Group {
                     if mode == .browse { listView } else { suggestForm }
                 }
-                Divider()
-                Link(destination: URL(string: "https://heedkit.com/?ref=widget")!) {
-                    (Text("Powered by ") + Text("HeedKit").fontWeight(.semibold))
+                if hub.branding?.show_powered_by != false {
+                    Divider()
+                    Link(destination: poweredByURL) {
+                        poweredByLabel
+                    }
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .padding(.vertical, 8)
                 }
-                .font(.caption2)
-                .foregroundColor(.secondary)
-                .padding(.vertical, 8)
             }
             .navigationTitle(hub.workspaceName.isEmpty ? "Feedback" : hub.workspaceName)
             #if os(iOS)
@@ -227,6 +229,19 @@ public struct HeedKitView: View {
         case .appreciation:   return "Send appreciation"
         case .other:          return "Send"
         }
+    }
+
+    private var poweredByURL: URL {
+        hub.branding?.url.flatMap(URL.init(string:)) ?? URL(string: "https://heedkit.com/?ref=widget")!
+    }
+
+    private var poweredByLabel: Text {
+        let label = hub.branding?.label ?? "Powered by HeedKit"
+        // Keep the brand name semibold when the label has the canonical shape.
+        if label.hasPrefix("Powered by ") {
+            return Text("Powered by ") + Text(label.dropFirst("Powered by ".count)).fontWeight(.semibold)
+        }
+        return Text(label)
     }
 
     // MARK: - Actions

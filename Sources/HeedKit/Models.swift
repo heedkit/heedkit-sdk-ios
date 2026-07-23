@@ -201,6 +201,14 @@ public struct Comment: Decodable, Identifiable {
     }
 }
 
+/// "Powered by HeedKit" badge config from /sdk/init. Optional on
+/// `WorkspaceConfig` so older backends without the key still decode.
+public struct Branding: Decodable {
+    public let show_powered_by: Bool?
+    public let label: String?
+    public let url: String?
+}
+
 /// Workspace configuration returned by /sdk/init (nested under `workspace`).
 struct WorkspaceConfig: Decodable {
     let name: String?
@@ -209,6 +217,7 @@ struct WorkspaceConfig: Decodable {
     let kind_visibility: [String: String]?
     let kind_interactions: [String: [String: Bool]]?
     let is_public_roadmap: Bool?
+    let branding: Branding?
 }
 
 struct InitResult: Decodable {
@@ -231,6 +240,7 @@ struct InitResult: Decodable {
     var workspaceName: String { workspace.name ?? "" }
     var enabledKinds: [String] { workspace.enabled_kinds }
     var kindVisibility: [String: String]? { workspace.kind_visibility }
+    var branding: Branding? { workspace.branding }
 
     /// Which interactions the admin has enabled for a given kind, in stable order.
     func interactions(for kind: FeatureKind) -> [Interaction] {
