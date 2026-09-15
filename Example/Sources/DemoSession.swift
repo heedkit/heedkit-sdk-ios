@@ -31,6 +31,12 @@ final class DemoSession: ObservableObject {
 
     private let hub = HeedKit.shared
 
+    #if os(macOS)
+    private static let platform = "macos"
+    #else
+    private static let platform = "ios"
+    #endif
+
     var workspaceName: String { hub.workspaceName }
     var endUserId: String? { hub.endUserId }
     var enabledKinds: [FeatureKind] {
@@ -54,10 +60,10 @@ final class DemoSession: ObservableObject {
                 // their votes/submissions persist. Drop it to go anonymous
                 // (the SDK then uses a Keychain-backed device id).
                 user: .init(
-                    externalId: "ios-demo-user",
+                    externalId: "\(Self.platform)-demo-user",
                     email: "demo@heedkit.com",
-                    name: "iOS Demo User",
-                    platform: "ios"
+                    name: "HeedKit Demo User",
+                    platform: Self.platform
                 )
             )
             phase = .ready

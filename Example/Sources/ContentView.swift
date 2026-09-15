@@ -238,6 +238,9 @@ private struct SubmitSheet: View {
                 }
             }
         }
+        #if os(macOS)
+        .frame(minWidth: 440, minHeight: 400)
+        #endif
     }
 }
 
@@ -301,5 +304,8 @@ private struct CommentSheet: View {
                 loaded = true
             }
         }
+        #if os(macOS)
+        .frame(minWidth: 440, minHeight: 400)
+        #endif
     }
 }

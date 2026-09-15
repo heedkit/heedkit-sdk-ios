@@ -1,12 +1,13 @@
-# HeedKit (iOS / Swift Package)
+# HeedKit (iOS & macOS / Swift Package)
 
-Native iOS SDK for HeedKit.
+Native Swift SDK for HeedKit — one package for **iOS 16+** and **macOS 13+**, with a
+SwiftUI `HeedKitView` that adapts to each platform.
 
 ## Install
 
-`Package.swift`:
+`Package.swift` (or Xcode → File → Add Package Dependencies):
 ```swift
-.package(url: "https://github.com/heedkit/heedkit-sdk-ios.git", from: "0.3.0")
+.package(url: "https://github.com/heedkit/heedkit-sdk-ios.git", from: "0.4.0")
 ```
 
 ## Quickstart
@@ -65,6 +66,31 @@ struct ContentView: View {
     }
 }
 ```
+
+## macOS
+
+Everything above works unchanged in a Mac app — same `initialize`, same `HeedKitView`.
+Two Mac-specific notes:
+
+- **App Sandbox:** a sandboxed app (required for the Mac App Store) needs the
+  outgoing-connections entitlement, or every request fails as if offline. In
+  *Signing & Capabilities → App Sandbox → Network*, tick **Outgoing Connections
+  (Client)** — that's `com.apple.security.network.client = true` in your `.entitlements`.
+- **Presentation:** present it as a `.sheet` like on iOS. The view sizes the sheet itself
+  (min 480×560), the Suggest form uses the grouped Mac style, and **Esc** closes it.
+
+```swift
+struct ContentView: View {
+    @State private var open = false
+    var body: some View {
+        Button("Send feedback") { open = true }
+            .sheet(isPresented: $open) { HeedKitView() }
+    }
+}
+```
+
+The anonymous identity token is stored in the app's Keychain on macOS too, so
+votes persist across launches.
 
 ## Programmatic
 

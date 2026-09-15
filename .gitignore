@@ -11,3 +11,5 @@ Package.resolved
 # XcodeGen output for the Example app — regenerate with `xcodegen` from Example/
 Example/HeedKitDemo.xcodeproj/
 Example/Info.plist
+Example/Info-macOS.plist
+Example/HeedKitDemoMac.entitlements

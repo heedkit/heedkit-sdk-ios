@@ -17,10 +17,11 @@ enum Config {
     /// the app shows a setup banner until you replace it or set the env var.
     static let workspaceKey = env("HEEDKIT_WORKSPACE_KEY") ?? "pk_REPLACE_ME"
 
-    /// Rails `/sdk` backend host. Defaults to the iOS-simulator-reachable host.
+    /// Rails `/sdk` backend host. Defaults to the host both the iOS simulator and
+    /// the Mac app can reach.
     ///
     /// Host cheatsheet (the apex route matches any Host, so no subdomain needed):
-    ///   - iOS simulator   -> http://localhost:3000          (this default)
+    ///   - iOS simulator / Mac app -> http://localhost:3000  (this default)
     ///   - Physical device -> http://<your-mac-LAN-ip>:3000  (e.g. 192.168.1.42)
     ///   - Android emulator (other SDK) -> http://10.0.2.2:3000
     static let apiUrl = env("HEEDKIT_API_URL") ?? "http://localhost:3000"
