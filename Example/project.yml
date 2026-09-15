@@ -3,6 +3,7 @@ options:
   bundleIdPrefix: dev.heedkit.demo
   deploymentTarget:
     iOS: "16.0"
+    macOS: "13.0"
   createIntermediateGroups: true
 
 settings:
@@ -16,6 +17,9 @@ packages:
     # Path is relative to this project.yml file -> Example/../ = the SDK root.
     path: ../
 
+# Both targets build the same three Sources/ files — the demo is pure SwiftUI, so the
+# only platform differences are the plist/entitlements below and a couple of
+# `#if os(macOS)` sheet sizes in ContentView.
 targets:
   HeedKitDemo:
     type: application
@@ -44,6 +48,37 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: dev.heedkit.demo.HeedKitDemo
         TARGETED_DEVICE_FAMILY: "1,2"
         SUPPORTS_MACCATALYST: NO
+    dependencies:
+      - package: HeedKit
+        product: HeedKit
+
+  HeedKitDemoMac:
+    type: application
+    platform: macOS
+    sources:
+      - Sources
+    info:
+      path: Info-macOS.plist
+      properties:
+        CFBundleDisplayName: HeedKit Demo
+        LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+          NSExceptionDomains:
+            localhost:
+              NSExceptionAllowsInsecureHTTPLoads: true
+            127.0.0.1:
+              NSExceptionAllowsInsecureHTTPLoads: true
+    # Sandboxed like a Mac App Store app. `network.client` is the one entitlement the
+    # SDK needs — without it every request fails as if offline.
+    entitlements:
+      path: HeedKitDemoMac.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.client: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.heedkit.demo.HeedKitDemoMac
     dependencies:
       - package: HeedKit
         product: HeedKit

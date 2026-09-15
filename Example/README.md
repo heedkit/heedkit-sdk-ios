@@ -1,6 +1,7 @@
-# HeedKit iOS — Example app
+# HeedKit iOS & macOS — Example app
 
-A SwiftUI iOS app that drives the **local `HeedKit` Swift package** (path
+A SwiftUI app (two targets, `HeedKitDemo` for iOS and `HeedKitDemoMac` for macOS,
+sharing one source set) that drives the **local `HeedKit` Swift package** (path
 dependency, not a published release) against the **Rails `/sdk` backend**. It
 walks the full SDK flow end to end:
 
@@ -22,7 +23,7 @@ suggest + vote + comment, themed by the workspace's `/sdk/init` response).
 
 ## Prerequisites
 
-- **Xcode 15+** (deployment target iOS 16, for `NavigationStack`).
+- **Xcode 15+** (deployment targets iOS 16 / macOS 13, for `NavigationStack`).
 - **The Rails backend running locally:**
   ```bash
   cd heedkit-rails
@@ -60,7 +61,7 @@ The Rails apex route matches any `Host`, so no subdomain is needed.
 
 | Where the app runs            | `apiUrl`                       |
 | ----------------------------- | ------------------------------ |
-| **iOS simulator** (default)   | `http://localhost:3000`        |
+| **iOS simulator / Mac app** (default) | `http://localhost:3000` |
 | iOS simulator (alt)           | `http://127.0.0.1:3000`        |
 | **Physical iPhone**           | `http://<your-mac-LAN-ip>:3000` (e.g. `http://192.168.1.42:3000`) |
 | Android emulator (other SDK)  | `http://10.0.2.2:3000`         |
@@ -80,7 +81,12 @@ xcodegen                   # regenerates HeedKitDemo.xcodeproj from project.yml
 open HeedKitDemo.xcodeproj
 ```
 
-Select an iPhone simulator and press ⌘R.
+Pick the `HeedKitDemo` scheme and an iPhone simulator, or the `HeedKitDemoMac`
+scheme and **My Mac**, then press ⌘R.
+
+The Mac target is sandboxed like a Mac App Store app; its generated
+`HeedKitDemoMac.entitlements` grants `com.apple.security.network.client`, the one
+entitlement the SDK needs.
 
 ### Path B — open the checked-in project
 
@@ -114,4 +120,4 @@ pointing at the repo root) and lists all three sources. Pick a simulator, ⌘R.
 | `Sources/HeedKitDemoApp.swift` | `@main` entry + `Config` (key/endpoint, env-var override). |
 | `Sources/DemoSession.swift`       | `ObservableObject` owning the whole `/sdk` flow.           |
 | `Sources/ContentView.swift`       | Thin SwiftUI UI: roadmap, submit sheet, comment sheet.     |
-| `project.yml` / `Info.plist`      | XcodeGen spec + ATS cleartext exceptions.                  |
+| `project.yml` / `Info.plist`      | XcodeGen spec (iOS + macOS targets) + ATS cleartext exceptions. |

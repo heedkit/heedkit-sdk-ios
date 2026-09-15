@@ -117,11 +117,17 @@ public struct HeedKitView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") { dismiss() }
+                        .keyboardShortcut(.cancelAction)
                 }
             }
             .task { await refresh() }
             .onChange(of: activeKind) { _ in Task { await refresh() } }
         }
+        #if os(macOS)
+        // A macOS sheet takes its size from its content; without this the widget
+        // opens as a tiny window.
+        .frame(minWidth: 480, idealWidth: 520, minHeight: 560, idealHeight: 640)
+        #endif
         .preferredColorScheme(resolvedScheme)
     }
 
@@ -216,6 +222,9 @@ public struct HeedKitView: View {
                 .tint(primary)
             }
         }
+        #if os(macOS)
+        .formStyle(.grouped)
+        #endif
         .onAppear {
             if !enabledKinds.contains(kind), let first = enabledKinds.first { kind = first }
         }
