@@ -145,6 +145,37 @@ final class ModelsTests: XCTestCase {
         XCTAssertEqual(r.interactions(for: .bugReport), [.plusOne])
     }
 
+    func testInitResultTreatsNullInteractionsAsDisabled() throws {
+        // The settings form stores unchecked interactions as nil (Boolean.cast of a
+        // missing checkbox), so /sdk/init sends `null` — it must decode as "off",
+        // not fail the whole handshake.
+        let json = """
+        {
+          "end_user_id": "eu",
+          "workspace": {
+            "name": "n", "theme": {}, "enabled_kinds": [],
+            "kind_interactions": {
+              "feature_request": { "upvote": true, "downvote": null, "plus_one": null, "like": null },
+              "bug_report":      { "upvote": null, "downvote": null, "plus_one": true, "like": null }
+            }
+          }
+        }
+        """.data(using: .utf8)!
+        let r = try JSONDecoder().decode(InitResult.self, from: json)
+        XCTAssertEqual(r.interactions(for: .featureRequest), [.upvote])
+        XCTAssertEqual(r.interactions(for: .bugReport), [.plusOne])
+    }
+
+    func testThemeTreatsNullShowCountAsDefault() throws {
+        let json = """
+        { "show_counts": { "feature_request": null, "bug_report": false } }
+        """.data(using: .utf8)!
+        let theme = try JSONDecoder().decode(Theme.self, from: json)
+        XCTAssertTrue(theme.showCount(for: .featureRequest))
+        XCTAssertFalse(theme.showCount(for: .bugReport))
+        XCTAssertTrue(theme.showCount(for: .other))
+    }
+
     func testInitResultInteractionsForReturnsCanonicalOrder() throws {
         let json = """
         {

@@ -55,7 +55,8 @@ public struct Theme: Decodable {
     public var font_size: String?
     public var group_mode: String?
     /// Per-kind toggle: when false, render the action icon without a count.
-    public var show_counts: [String: Bool]?
+    /// A `null` value means "unset" and falls back to the default (shown).
+    public var show_counts: [String: Bool?]?
 
     public init() {}
 
@@ -71,7 +72,7 @@ public struct Theme: Decodable {
         font_family = (try? c.decode(String.self, forKey: .font_family)) ?? (try? c.decode(String.self, forKey: .fontFamily))
         font_size = try? c.decode(String.self, forKey: .font_size)
         group_mode = try? c.decode(String.self, forKey: .group_mode)
-        show_counts = try? c.decode([String: Bool].self, forKey: .show_counts)
+        show_counts = try? c.decode([String: Bool?].self, forKey: .show_counts)
         // `radius` may be an Int (px) or a CSS string like "12px" / "0.75rem".
         if let i = try? c.decode(Int.self, forKey: .radius) {
             radius = i
@@ -89,7 +90,7 @@ public struct Theme: Decodable {
     /// Whether to display the vote/like/+1 count for a given kind.
     /// Defaults to true when unset — admin opts out of counts per kind.
     public func showCount(for kind: FeatureKind) -> Bool {
-        show_counts?[kind.rawValue] ?? true
+        (show_counts?[kind.rawValue] ?? nil) ?? true
     }
 }
 
@@ -215,7 +216,9 @@ struct WorkspaceConfig: Decodable {
     let theme: Theme
     let enabled_kinds: [String]
     let kind_visibility: [String: String]?
-    let kind_interactions: [String: [String: Bool]]?
+    /// Per-kind map of interaction → enabled. The backend sends `null` for an
+    /// interaction the admin never ticked, which means disabled.
+    let kind_interactions: [String: [String: Bool?]]?
     let is_public_roadmap: Bool?
     let branding: Branding?
 }
