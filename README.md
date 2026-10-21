@@ -7,7 +7,7 @@ SwiftUI `HeedKitView` that adapts to each platform.
 
 `Package.swift` (or Xcode → File → Add Package Dependencies):
 ```swift
-.package(url: "https://github.com/heedkit/heedkit-sdk-ios.git", from: "0.4.0")
+.package(url: "https://github.com/heedkit/heedkit-sdk-ios.git", from: "0.5.0")
 ```
 
 ## Quickstart
@@ -91,6 +91,29 @@ struct ContentView: View {
 
 The anonymous identity token is stored in the app's Keychain on macOS too, so
 votes persist across launches.
+
+### AppKit apps (no SwiftUI presentation)
+
+If your Mac app presents from AppKit — an `NSWindow`, a menu item, a status-bar app —
+call the SDK directly and it wraps `HeedKitView` in an `NSHostingController` for you
+(0.5.0+):
+
+```swift
+import HeedKit
+
+// Attaches as a sheet to the window (defaults to the key/main window); opens a
+// standalone window when the app has none, e.g. a menu-bar app.
+HeedKit.shared.present(in: window)
+
+// A ready-made item for your Help or status-bar menu — "Send Feedback…".
+helpMenu.addItem(HeedKit.shared.menuItem())
+
+// Close it programmatically (Esc and the toolbar Close button already do).
+HeedKit.shared.dismiss()
+```
+
+On macOS 14+ the Close button and title appear in the window toolbar; on macOS 13 close
+with Esc (or the window's close button when it opened standalone).
 
 ## Programmatic
 

@@ -89,6 +89,14 @@ struct ContentView: View {
                 Label("Open HeedKitView", systemImage: "bubble.left.and.bubble.right.fill")
             }
             .disabled(session.phase != .ready)
+            #if os(macOS)
+            // The AppKit entry point — what a non-SwiftUI Mac app calls from a menu
+            // item or toolbar action. Attaches as a sheet to the key window.
+            Button { HeedKit.shared.present(in: NSApp.keyWindow) } label: {
+                Label("Open via HeedKit.present(in:)", systemImage: "macwindow")
+            }
+            .disabled(session.phase != .ready)
+            #endif
         }
     }
 
