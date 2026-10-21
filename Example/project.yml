@@ -19,7 +19,7 @@ packages:
 
 # Both targets build the same three Sources/ files — the demo is pure SwiftUI, so the
 # only platform differences are the plist/entitlements below and a couple of
-# `#if os(macOS)` sheet sizes in ContentView.
+# `#if os(macOS)` blocks in ContentView (sheet sizes, the AppKit `present(in:)` button).
 targets:
   HeedKitDemo:
     type: application

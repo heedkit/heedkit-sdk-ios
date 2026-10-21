@@ -52,8 +52,13 @@ public struct HeedKitView: View {
     @Environment(\.colorScheme) private var systemColorScheme
 
     private let hub = HeedKit.shared
+    private let onClose: (() -> Void)?
 
-    public init() {
+    /// - Parameter onClose: run by the Close button and Esc instead of SwiftUI's
+    ///   `dismiss`, for hosts that present the view themselves (e.g. an
+    ///   `NSHostingController` behind `HeedKit.present(in:)` on macOS).
+    public init(onClose: (() -> Void)? = nil) {
+        self.onClose = onClose
         let kinds = HeedKit.shared.enabledKinds
         let first = kinds.first ?? .featureRequest
         let mode = HeedKit.shared.theme.groupMode
@@ -116,7 +121,7 @@ public struct HeedKitView: View {
             #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { dismiss() }
+                    Button("Close") { close() }
                         .keyboardShortcut(.cancelAction)
                 }
             }
@@ -254,6 +259,10 @@ public struct HeedKitView: View {
     }
 
     // MARK: - Actions
+
+    private func close() {
+        if let onClose { onClose() } else { dismiss() }
+    }
 
     private func refresh() async {
         loading = true

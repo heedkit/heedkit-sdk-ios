@@ -1,18 +1,19 @@
 # heedkit-sdk-ios — Guide for Claude Code
 
 iOS **and macOS** SwiftUI SDK for the HeedKit feedback widget (one package: iOS 16+,
-macOS 13+). SwiftPM library product `HeedKit`, **v0.4.0**. Standalone native
+macOS 13+). SwiftPM library product `HeedKit`, **v0.5.0**. Standalone native
 implementation (does **not** depend on `heedkit-sdk-kmp`).
 
 - **Toolchain:** Swift Package Manager. Manifest `Package.swift`.
 - **Source (`Sources/HeedKit/`):** `HeedKit.swift` (client — HeedKit `/sdk/*` API + HMAC
-  identity, the entry point), `HeedKitView.swift` (SwiftUI widget), `Models.swift`. Tests in
-  `Tests/HeedKitTests/`.
+  identity, the entry point), `HeedKitView.swift` (SwiftUI widget), `Models.swift`,
+  `HeedKit+AppKit.swift` (macOS-only: `present(in:)` / `dismiss()` / `menuItem()` host the
+  widget in an `NSHostingController` for AppKit apps). Tests in `Tests/HeedKitTests/`.
 - **Build / test:** `swift build` · `swift test` (both build for the Mac host, so they
   verify the macOS side). Verify iOS with
   `xcodebuild -scheme HeedKit -destination 'generic/platform=iOS Simulator' build`.
   Platform differences are the few `#if os(macOS)` blocks in `HeedKitView.swift`
-  (sheet sizing, grouped form) — keep them minimal.
+  (sheet sizing, grouped form) plus `HeedKit+AppKit.swift` — keep them minimal.
 - **Example app (`Example/`):** XcodeGen project with two targets sharing one source
   set: `HeedKitDemo` (iOS) and `HeedKitDemoMac` (sandboxed macOS, needs
   `com.apple.security.network.client`).
