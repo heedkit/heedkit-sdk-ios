@@ -112,8 +112,8 @@ helpMenu.addItem(HeedKit.shared.menuItem())
 HeedKit.shared.dismiss()
 ```
 
-Presented this way the widget draws its own header — your app's icon, the workspace
-name and a Close button (Esc works too).
+The widget draws its own chrome on macOS: a header with your app's icon and the
+workspace name, and a footer with the Close button (Esc works too).
 
 ## Programmatic
 
