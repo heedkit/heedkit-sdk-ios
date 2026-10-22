@@ -112,8 +112,8 @@ helpMenu.addItem(HeedKit.shared.menuItem())
 HeedKit.shared.dismiss()
 ```
 
-On macOS 14+ the Close button and title appear in the window toolbar; on macOS 13 close
-with Esc (or the window's close button when it opened standalone).
+Presented this way the widget draws its own header — your app's icon, the workspace
+name and a Close button (Esc works too).
 
 ## Programmatic
 
