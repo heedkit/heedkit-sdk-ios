@@ -67,6 +67,9 @@ struct ContentView: View {
 }
 ```
 
+The widget's header shows the workspace icon uploaded in the HeedKit console, falling
+back to your app's own icon when none is set.
+
 ## macOS
 
 Everything above works unchanged in a Mac app — same `initialize`, same `HeedKitView`.

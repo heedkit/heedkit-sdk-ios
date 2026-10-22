@@ -103,6 +103,7 @@ public final class HeedKit {
     private(set) public var theme: Theme = Theme()
     private(set) public var workspaceName: String = ""
     private(set) public var branding: Branding?
+    private(set) public var workspaceIconURL: URL?
     private(set) public var enabledKinds: [FeatureKind] = []
     private(set) public var kindVisibility: [FeatureKind: Visibility] = [:]
     private(set) public var kindInteractions: [FeatureKind: [Interaction]] = [:]
@@ -161,6 +162,7 @@ public final class HeedKit {
         self.theme = res.theme
         self.workspaceName = res.workspaceName
         self.branding = res.branding
+        self.workspaceIconURL = res.iconURL
         self.enabledKinds = res.enabledKinds.compactMap(FeatureKind.init(rawValue:))
 
         var vMap: [FeatureKind: Visibility] = [:]

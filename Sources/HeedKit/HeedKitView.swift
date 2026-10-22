@@ -132,21 +132,33 @@ public struct HeedKitView: View {
 
     // MARK: - Sections
 
-    /// The host app's icon and the workspace name. Lives in the content rather than
-    /// the toolbar: macOS sheets don't render toolbar items other than the action
-    /// buttons, and this way every presentation (SwiftUI sheet, AppKit window, iOS)
-    /// gets the same header.
+    /// The workspace icon (else the host app's) and the workspace name. Lives in the
+    /// content rather than the toolbar: macOS sheets don't render toolbar items other
+    /// than the action buttons, and this way every presentation (SwiftUI sheet, AppKit
+    /// window, iOS) gets the same header.
     private var header: some View {
         HStack(spacing: 8) {
-            if let icon = hostAppIcon {
-                icon.resizable().aspectRatio(contentMode: .fit)
-                    .frame(width: 22, height: 22)
-                    .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
-                    .accessibilityHidden(true)
+            if let url = hub.workspaceIconURL {
+                AsyncImage(url: url) { phase in
+                    if let image = phase.image {
+                        headerIcon(image)
+                    } else if let icon = hostAppIcon {
+                        headerIcon(icon)
+                    }
+                }
+            } else if let icon = hostAppIcon {
+                headerIcon(icon)
             }
             Text(hub.displayName).font(.headline).accessibilityAddTraits(.isHeader)
             Spacer()
         }
+    }
+
+    private func headerIcon(_ image: Image) -> some View {
+        image.resizable().aspectRatio(contentMode: .fit)
+            .frame(width: 22, height: 22)
+            .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+            .accessibilityHidden(true)
     }
 
     /// "Powered by HeedKit" (when the workspace's plan shows it) and, on macOS, the
