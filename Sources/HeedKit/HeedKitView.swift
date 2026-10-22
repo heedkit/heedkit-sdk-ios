@@ -147,20 +147,29 @@ public struct HeedKitView: View {
     }
 
     private var kindTabsBar: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
-                kindTab(.all, label: "All", icon: nil)
-                ForEach(enabledKinds, id: \.self) { k in
-                    kindTab(.specific(k), label: k.label, icon: k.tabIcon)
-                }
+        ViewThatFits(in: .horizontal) {
+            // Few enough tabs to fit (e.g. only two kinds enabled): share the full width.
+            HStack(spacing: 6) { kindTabs(fill: true) }
+                .padding(.horizontal)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) { kindTabs(fill: false) }
+                    .padding(.horizontal)
             }
-            .padding(.horizontal)
-            .padding(.vertical, 8)
+        }
+        .padding(.top, 16)
+        .padding(.bottom, 8)
+    }
+
+    @ViewBuilder
+    private func kindTabs(fill: Bool) -> some View {
+        kindTab(.all, label: "All", icon: nil, fill: fill)
+        ForEach(enabledKinds, id: \.self) { k in
+            kindTab(.specific(k), label: k.label, icon: k.tabIcon, fill: fill)
         }
     }
 
     @ViewBuilder
-    private func kindTab(_ filter: KindFilter, label: String, icon: String?) -> some View {
+    private func kindTab(_ filter: KindFilter, label: String, icon: String?, fill: Bool) -> some View {
         let active = activeKind == filter
         Button { activeKind = filter } label: {
             HStack(spacing: 4) {
@@ -168,6 +177,7 @@ public struct HeedKitView: View {
                 Text(label).font(.system(size: 13, weight: .medium))
             }
             .padding(.horizontal, 12).padding(.vertical, 6)
+            .frame(maxWidth: fill ? .infinity : nil)
             .foregroundStyle(active ? .white : .primary)
             .background(active ? primary : Color.secondary.opacity(0.12))
             .clipShape(Capsule())

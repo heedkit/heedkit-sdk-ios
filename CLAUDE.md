@@ -1,7 +1,7 @@
 # heedkit-sdk-ios — Guide for Claude Code
 
 iOS **and macOS** SwiftUI SDK for the HeedKit feedback widget (one package: iOS 16+,
-macOS 13+). SwiftPM library product `HeedKit`, **v0.5.1**. Standalone native
+macOS 13+). SwiftPM library product `HeedKit`, **v0.5.2**. Standalone native
 implementation (does **not** depend on `heedkit-sdk-kmp`).
 
 - **Toolchain:** Swift Package Manager. Manifest `Package.swift`.
