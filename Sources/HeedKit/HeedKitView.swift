@@ -55,9 +55,8 @@ public struct HeedKitView: View {
     private let onClose: (() -> Void)?
 
     /// - Parameter onClose: for hosts that present the view themselves (e.g. an
-    ///   `NSHostingController` behind `HeedKit.present(in:)` on macOS). The view then
-    ///   shows its own Close button in the header — such hosts have no sheet chrome
-    ///   — and runs this instead of SwiftUI's `dismiss` for Close and Esc.
+    ///   `NSHostingController` behind `HeedKit.present(in:)` on macOS): Close and Esc
+    ///   run this instead of SwiftUI's `dismiss`.
     public init(onClose: (() -> Void)? = nil) {
         self.onClose = onClose
         let kinds = HeedKit.shared.enabledKinds
@@ -109,27 +108,17 @@ public struct HeedKitView: View {
                 Group {
                     if mode == .browse { listView } else { suggestForm }
                 }
-                if hub.branding?.show_powered_by != false {
-                    Divider()
-                    Link(destination: poweredByURL) {
-                        poweredByLabel
-                    }
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                    .padding(.vertical, 8)
-                }
+                footer
             }
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
-            #endif
             .toolbar {
-                if onClose == nil {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Close") { close() }
-                            .keyboardShortcut(.cancelAction)
-                    }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") { close() }
+                        .keyboardShortcut(.cancelAction)
                 }
             }
+            #endif
             .task { await refresh() }
             .onChange(of: activeKind) { _ in Task { await refresh() } }
         }
@@ -157,11 +146,37 @@ public struct HeedKitView: View {
             }
             Text(hub.displayName).font(.headline).accessibilityAddTraits(.isHeader)
             Spacer()
-            if onClose != nil {
+        }
+    }
+
+    /// "Powered by HeedKit" (when the workspace's plan shows it) and, on macOS, the
+    /// Close button — one row, no rules, so a sheet doesn't end in two stacked bars.
+    @ViewBuilder
+    private var footer: some View {
+        #if os(macOS)
+        ZStack {
+            if showPoweredBy { poweredByLink }
+            HStack {
+                Spacer()
                 Button("Close") { close() }
                     .keyboardShortcut(.cancelAction)
             }
         }
+        .padding(.horizontal)
+        .padding(.vertical, 10)
+        #else
+        if showPoweredBy {
+            poweredByLink.padding(.vertical, 8)
+        }
+        #endif
+    }
+
+    private var showPoweredBy: Bool { hub.branding?.show_powered_by != false }
+
+    private var poweredByLink: some View {
+        Link(destination: poweredByURL) { poweredByLabel }
+            .font(.caption2)
+            .foregroundColor(.secondary)
     }
 
     private var modePicker: some View {
