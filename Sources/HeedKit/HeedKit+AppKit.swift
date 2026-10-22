@@ -19,18 +19,16 @@ extension HeedKit {
     public func present(in window: NSWindow? = nil) {
         guard Self.presented == nil else { return }
         let parent = window ?? NSApp.keyWindow ?? NSApp.mainWindow
+        // Given an onClose, the view draws its own header (app icon, name, Close), so
+        // the window needs no toolbar or visible title.
         let host = NSHostingController(rootView: HeedKitView(onClose: { self.dismiss() }))
-        if #available(macOS 14.0, *) {
-            // Puts the view's toolbar Close button and title in the window chrome.
-            // On macOS 13 the widget still closes on Esc / the close button.
-            host.sceneBridgingOptions = [.toolbars, .title]
-        }
         let widget = WidgetWindow(contentViewController: host)
         widget.isReleasedWhenClosed = false
         // Match the SwiftUI `.sheet` size; the window would otherwise open at the
         // view's minimum and clip the kind tabs.
         widget.setContentSize(NSSize(width: 520, height: 640))
-        widget.title = workspaceName.isEmpty ? "Feedback" : workspaceName
+        widget.title = displayName  // Window menu / accessibility only
+        widget.titleVisibility = .hidden
         Self.presented = widget
         if let parent {
             parent.beginSheet(widget) { _ in if Self.presented === widget { Self.presented = nil } }

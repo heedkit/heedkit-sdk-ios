@@ -54,9 +54,10 @@ public struct HeedKitView: View {
     private let hub = HeedKit.shared
     private let onClose: (() -> Void)?
 
-    /// - Parameter onClose: run by the Close button and Esc instead of SwiftUI's
-    ///   `dismiss`, for hosts that present the view themselves (e.g. an
-    ///   `NSHostingController` behind `HeedKit.present(in:)` on macOS).
+    /// - Parameter onClose: for hosts that present the view themselves (e.g. an
+    ///   `NSHostingController` behind `HeedKit.present(in:)` on macOS). The view then
+    ///   shows its own Close button in the header — such hosts have no sheet chrome
+    ///   — and runs this instead of SwiftUI's `dismiss` for Close and Esc.
     public init(onClose: (() -> Void)? = nil) {
         self.onClose = onClose
         let kinds = HeedKit.shared.enabledKinds
@@ -96,9 +97,12 @@ public struct HeedKitView: View {
     public var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
+                header
+                    .padding(.horizontal)
+                    .padding(.top, 14)
                 modePicker
                     .padding(.horizontal)
-                    .padding(.top, 8)
+                    .padding(.top, 10)
                 if mode == .browse, hub.theme.groupMode == .tabs {
                     kindTabsBar
                 }
@@ -115,14 +119,15 @@ public struct HeedKitView: View {
                     .padding(.vertical, 8)
                 }
             }
-            .navigationTitle(hub.workspaceName.isEmpty ? "Feedback" : hub.workspaceName)
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { close() }
-                        .keyboardShortcut(.cancelAction)
+                if onClose == nil {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Close") { close() }
+                            .keyboardShortcut(.cancelAction)
+                    }
                 }
             }
             .task { await refresh() }
@@ -137,6 +142,27 @@ public struct HeedKitView: View {
     }
 
     // MARK: - Sections
+
+    /// The host app's icon and the workspace name. Lives in the content rather than
+    /// the toolbar: macOS sheets don't render toolbar items other than the action
+    /// buttons, and this way every presentation (SwiftUI sheet, AppKit window, iOS)
+    /// gets the same header.
+    private var header: some View {
+        HStack(spacing: 8) {
+            if let icon = hostAppIcon {
+                icon.resizable().aspectRatio(contentMode: .fit)
+                    .frame(width: 22, height: 22)
+                    .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+                    .accessibilityHidden(true)
+            }
+            Text(hub.displayName).font(.headline).accessibilityAddTraits(.isHeader)
+            Spacer()
+            if onClose != nil {
+                Button("Close") { close() }
+                    .keyboardShortcut(.cancelAction)
+            }
+        }
+    }
 
     private var modePicker: some View {
         Picker("", selection: $mode) {
@@ -253,6 +279,22 @@ public struct HeedKitView: View {
         case .appreciation:   return "Send appreciation"
         case .other:          return "Send"
         }
+    }
+
+    /// The host app's icon (macOS: the running app's; iOS: the primary icon from
+    /// Info.plist). Nil when the bundle has none, e.g. a bare test executable on iOS.
+    private var hostAppIcon: Image? {
+        #if os(macOS)
+        return Image(nsImage: NSApp.applicationIconImage)
+        #elseif canImport(UIKit)
+        guard let icons = Bundle.main.infoDictionary?["CFBundleIcons"] as? [String: Any],
+              let primary = icons["CFBundlePrimaryIcon"] as? [String: Any],
+              let files = primary["CFBundleIconFiles"] as? [String],
+              let name = files.last, let image = UIImage(named: name) else { return nil }
+        return Image(uiImage: image)
+        #else
+        return nil
+        #endif
     }
 
     private var poweredByURL: URL {

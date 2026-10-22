@@ -103,6 +103,15 @@ final class ModelsTests: XCTestCase {
         XCTAssertEqual(f.featureKind, .other)
     }
 
+    // MARK: - Display name
+
+    func testDisplayNameCapitalizesOnlyAllLowercaseNames() {
+        XCTAssertEqual(HeedKit.displayName(for: "slipway"), "Slipway")
+        XCTAssertEqual(HeedKit.displayName(for: "iFixit"), "iFixit")
+        XCTAssertEqual(HeedKit.displayName(for: "ACME"), "ACME")
+        XCTAssertEqual(HeedKit.displayName(for: ""), "Feedback")
+    }
+
     // MARK: - InitResult — the SDK handshake payload
 
     func testInitResultDecodesFullPayload() throws {

@@ -112,6 +112,18 @@ public final class HeedKit {
         kindInteractions[kind] ?? []
     }
 
+    /// Title for the widget: see `displayName(for:)`.
+    var displayName: String { Self.displayName(for: workspaceName) }
+
+    /// Workspace names often come straight from the subdomain ("slipway"), so an
+    /// all-lowercase name gets its first letter capitalized; deliberate casing
+    /// ("iFixit", "ACME") is left alone. Empty falls back to "Feedback".
+    static func displayName(for name: String) -> String {
+        guard !name.isEmpty else { return "Feedback" }
+        guard name == name.lowercased() else { return name }
+        return name.prefix(1).uppercased() + name.dropFirst()
+    }
+
     @discardableResult
     public func initialize(workspaceKey: String,
                            apiUrl: String = "https://api.heedkit.com",
