@@ -56,15 +56,11 @@ final class DemoSession: ObservableObject {
             try await hub.initialize(
                 workspaceKey: Config.workspaceKey,
                 apiUrl: Config.apiUrl,
-                // A stable externalId keeps this demo user across launches so
-                // their votes/submissions persist. Drop it to go anonymous
-                // (the SDK then uses a Keychain-backed device id).
-                user: .init(
-                    externalId: "\(Self.platform)-demo-user",
-                    email: "demo@heedkit.com",
-                    name: "HeedKit Demo User",
-                    platform: Self.platform
-                )
+                // Anonymous: the SDK persists the server-issued identity token in the
+                // Keychain, so this demo user keeps their votes across launches. A named
+                // identity (externalId) needs a userHash signed by YOUR backend — see the
+                // README — or the API rejects it with 401 invalid_user_signature.
+                user: .init(platform: Self.platform)
             )
             phase = .ready
             await reload()
