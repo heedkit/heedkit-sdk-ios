@@ -221,6 +221,8 @@ struct WorkspaceConfig: Decodable {
     let kind_interactions: [String: [String: Bool?]]?
     let is_public_roadmap: Bool?
     let branding: Branding?
+    /// Absolute URL of the icon uploaded in the console; absent on older backends.
+    let icon_url: String?
 }
 
 struct InitResult: Decodable {
@@ -244,6 +246,7 @@ struct InitResult: Decodable {
     var enabledKinds: [String] { workspace.enabled_kinds }
     var kindVisibility: [String: String]? { workspace.kind_visibility }
     var branding: Branding? { workspace.branding }
+    var iconURL: URL? { workspace.icon_url.flatMap(URL.init(string:)) }
 
     /// Which interactions the admin has enabled for a given kind, in stable order.
     func interactions(for kind: FeatureKind) -> [Interaction] {

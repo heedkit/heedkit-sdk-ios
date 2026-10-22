@@ -233,6 +233,43 @@ final class ModelsTests: XCTestCase {
         XCTAssertNil(r.branding)
     }
 
+    func testInitResultDecodesIconURL() throws {
+        let json = """
+        {
+          "end_user_id": "eu",
+          "workspace": {
+            "name": "n", "theme": {}, "enabled_kinds": [],
+            "icon_url": "https://cdn.heedkit.com/icons/slipway.png"
+          }
+        }
+        """.data(using: .utf8)!
+        let r = try JSONDecoder().decode(InitResult.self, from: json)
+        XCTAssertEqual(r.iconURL, URL(string: "https://cdn.heedkit.com/icons/slipway.png"))
+    }
+
+    func testInitResultToleratesMissingIconURL() throws {
+        // Backcompat: older backends don't send `icon_url`.
+        let json = """
+        {
+          "end_user_id": "eu",
+          "workspace": { "name": "n", "theme": {}, "enabled_kinds": [] }
+        }
+        """.data(using: .utf8)!
+        let r = try JSONDecoder().decode(InitResult.self, from: json)
+        XCTAssertNil(r.iconURL)
+    }
+
+    func testInitResultToleratesNullIconURL() throws {
+        let json = """
+        {
+          "end_user_id": "eu",
+          "workspace": { "name": "n", "theme": {}, "enabled_kinds": [], "icon_url": null }
+        }
+        """.data(using: .utf8)!
+        let r = try JSONDecoder().decode(InitResult.self, from: json)
+        XCTAssertNil(r.iconURL)
+    }
+
     func testInitResultInteractionsForUnknownKindIsEmpty() throws {
         let json = """
         {
